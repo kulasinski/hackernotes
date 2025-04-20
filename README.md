@@ -69,3 +69,119 @@ Pull requests, suggestions, and questions are welcome! Please open an issue or d
 ## 📄 License
 Apache License 2.0. See `LICENSE` file for details.
 
+---
+
+## Module Structure
+
+# HackerNotes Python Module Structure (OOP-centric)
+
+```
+hackernotes/
+├── __init__.py
+│
+├── cli/                     # CLI command logic (Click handlers)
+│   ├── __init__.py
+│   ├── note.py
+│   ├── workspace.py
+│   ├── graph.py
+│   ├── ai.py
+│   ├── tag.py
+│   ├── entity.py
+│   ├── time.py
+│   └── general.py           # init, clean, aliases
+│
+├── core/                    # Domain objects & business logic
+│   ├── __init__.py
+│   ├── note.py              # Note, Snippet classes and logic
+│   ├── workspace.py         # Workspace class and settings logic
+│   ├── graph.py             # GraphNode and traversal/mutation
+│   ├── llm.py               # LLM interaction logic and queue
+│   ├── prompt.py            # Prompt and generation logic
+│   ├── annotation.py        # Tag, Entity, TimeExpr classes
+│   └── automation.py        # TaskQueue and scheduler
+│
+├── db/                      # Persistence layer
+│   ├── __init__.py
+│   ├── schema.py            # Table definitions (SQLite/Postgres)
+│   ├── models.py            # ORM-style access (custom or SQLModel/Peewee)
+│   ├── query.py             # High-level queries and joins
+│   └── migrations.py        # Setup, schema upgrades
+│
+├── services/                # External I/O integrations
+│   ├── __init__.py
+│   ├── ollama.py            # Ollama wrapper
+│   ├── openai.py            # OpenAI API wrapper
+│   ├── sync.py              # Cloud sync via Dropbox/iCloud
+│   └── export.py            # Markdown/file generation
+│
+├── utils/                   # Helpers
+│   ├── __init__.py
+│   ├── uuid.py
+│   ├── time.py
+│   ├── highlight.py         # for colorizing output
+│   └── config.py
+│
+└── main.py                  # CLI entry point (loads Click commands)
+```
+
+---
+
+## Full Command List
+
+# HackerNotes CLI Design (alias: `hn`)
+
+# General Structure:
+# hn <object> <action> [options]
+
+# Aliases:
+# hn show     -> hn note show
+# hn new      -> hn note new
+# hn list     -> hn note list
+
+# =========================
+# General Commands
+# =========================
+hn init                         # Initialize HackerNotes for first-time use
+hn clean                        # Cleanup or reset local state
+
+# =========================
+# Note Commands
+# =========================
+hn note new [<title>]           # Start new note (optional title), enters snippet loop
+hn note list [--all]            # List recent (or all) notes
+hn note show [<note-id>]       # Show a note (last edited if no ID)
+hn note edit [<note-id>]       # Edit a note (last edited if no ID)
+hn note archive <note-id>      # Soft delete (mark as archived)
+hn note delete <note-id>       # Hard delete
+hn note export <note-id>       # Trigger generate to file
+
+# =========================
+# Workspace Commands
+# =========================
+hn workspace new <name>         # Create a new workspace
+hn workspace switch <id>        # Set active workspace
+hn workspace config             # View or modify workspace config
+hn workspace delete <id>        # Permanently remove workspace
+
+# =========================
+# Graph Commands
+# =========================
+hn graph show                   # Display current graph schema
+hn graph extend                 # Ask LLM to grow the graph
+hn graph place <note-id>        # Manually assign note to graph node(s)
+
+# =========================
+# LLM Commands
+# =========================
+hn llm queue                    # View task queue (pending/completed)
+hn llm run                      # Run queued tasks (only if using local model)
+hn llm prompt <type>            # Manual prompt (chat, generate, annotate, classify)
+hn llm chat                     # Chat with knowledge base (RAG)
+hn llm generate <note-id>       # Generate secondary file from a note
+
+# =========================
+# Annotation Commands
+# =========================
+hn tag list [--used]            # List all tags
+hn entity list [--used]         # List all entities
+hn time list [--used]           # List all temporal expressions
