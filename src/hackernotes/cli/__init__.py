@@ -4,13 +4,10 @@ import logging
 
 import click
 
-# from . import general  # Import the general module to register its commands
-
-# Pre-CLI Initialization Check
-CONFIG_DIR = os.path.expanduser("~/.hackernotes")
-DB_PATH = os.path.join(CONFIG_DIR, "notes.db")
+from ..utils.config import CONFIG_DIR, DB_PATH
 
 def preflight():
+    """ Pre-CLI Initialization Checks """
     if not os.path.exists(CONFIG_DIR):
         click.echo("[!] Configuration not initialized. Run 'hn init' first.")
         sys.exit(1)
@@ -22,5 +19,6 @@ def preflight():
 @click.group()
 def hn():
     """HackerNotes CLI (alias: hn)"""
-    click.echo("Welcome to HackerNotes CLI!")
-    preflight()
+    # click.echo("Welcome to HackerNotes CLI!")
+    # preflight()
+    pass

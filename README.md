@@ -58,6 +58,7 @@ hn graph show
 - 🔜 Web UI (Supabase-backed)
 - 🔜 Scheduled prompts and automation
 - 🔜 Multi-agent note interaction
+- encrypting local and remote .db files for enhanced security
 
 ---
 

@@ -1,12 +1,12 @@
 import click
 
-from . import hn
+from . import hn, preflight
 
 # === Note Commands ===
 @hn.group()
 def note():
     """Note-related operations."""
-    pass
+    preflight()
 
 @note.command()
 @click.argument('title', required=False)
