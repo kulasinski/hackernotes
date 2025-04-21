@@ -7,6 +7,8 @@ from ..utils.term import print_sys
 CONFIG_DIR = os.path.expanduser("~/.hackernotes")
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
 
+config = {}
+
 # if config file exists, load it
 if os.path.exists(CONFIG_PATH):
     config = toml.load(CONFIG_PATH)
@@ -19,6 +21,7 @@ else:
     # create default config file
     config = {
         "db_path": os.path.join(CONFIG_DIR, "notes.db"),
+        "active_workspace": "DEFAULT",
         "model_backend": "ollama",
         "ollama_config": {
             "model": "llama2",
@@ -30,7 +33,9 @@ else:
         toml.dump(config, f)
     print_sys(f"[+] Created config file at {CONFIG_PATH}")
 
-DB_PATH = config["db_path"]
+# DB_PATH = config.get("db_path", os.path.join(CONFIG_DIR, "notes.db"))
+# ACTIVE_WORKSPACE = config.get("active_workspace", "DEFAULT")
+# MODEL_BACKEND = config.get("model_backend", "ollama")
 
 def update_config(**kwargs):
     """

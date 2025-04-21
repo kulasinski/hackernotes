@@ -1,111 +1,168 @@
 # hackernotes/db/query.py
-
-import sqlite3
-from typing import List, Optional
-from . import get_connection
-from .models import Note, Snippet
+from sqlalchemy.orm import Session
+from sqlalchemy import select
 from datetime import datetime
+from uuid import uuid4
+from typing import Optional, List, Set
 
+from .models import Entity, Note, Snippet, Tag, TimeExpr, User, Workspace
 
-def fetch_latest_note(conn: Optional[sqlite3.Connection] = None) -> Optional[Note]:
-    close_conn = False
-    if conn is None:
-        conn = get_connection()
-        close_conn = True
+class WorkspaceCRUD:
+    @classmethod
+    def create(cls, session: Session, user_id: str, name: str, model_backend: str, model_config: Optional[str] = None) -> Workspace:
+        ws = Workspace(
+            id=str(uuid4()),
+            user_id=user_id,
+            name=name,
+            model_backend=model_backend,
+            model_config=model_config,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        session.add(ws)
+        session.commit()
+        return ws
 
-    row = conn.execute(
+    @classmethod
+    def get(cls, session: Session, workspace_id: str = None, workspace_name: str = None) -> Optional[Workspace]:
         """
-        SELECT id, workspace_id, title, archived, created_at, updated_at
-        FROM note
-        WHERE archived = 0
-        ORDER BY updated_at DESC
-        LIMIT 1
+        Get a workspace by ID or name. If both are provided, ID takes precedence.
         """
-    ).fetchone()
+        if workspace_id is None and workspace_name is None:
+            raise ValueError("Either workspace_id or workspace_name must be provided.")
+        if workspace_id is not None:
+            return session.get(Workspace, workspace_id)
+        if workspace_name is not None:
+            stmt = select(Workspace).where(Workspace.name == workspace_name)
+            return session.execute(stmt).scalars().one_or_none()
+        return None
 
-    if close_conn:
-        conn.close()
-
-    if row:
-        return Note(*row)
-    return None
-
-
-def fetch_note_by_id(note_id: str, conn: Optional[sqlite3.Connection] = None) -> Optional[Note]:
-    close_conn = False
-    if conn is None:
-        conn = get_connection()
-        close_conn = True
-
-    row = conn.execute(
+    @classmethod
+    def list_by_user(cls, session: Session, user_id: str) -> List[Workspace]:
         """
-        SELECT id, workspace_id, title, archived, created_at, updated_at
-        FROM note WHERE id = ?
-        """,
-        (note_id,)
-    ).fetchone()
-
-    if close_conn:
-        conn.close()
-
-    if row:
-        return Note(*row)
-    return None
-
-
-def fetch_snippets_for_note(note_id: str, conn: Optional[sqlite3.Connection] = None) -> List[Snippet]:
-    close_conn = False
-    if conn is None:
-        conn = get_connection()
-        close_conn = True
-
-    rows = conn.execute(
+        List all workspaces for a given user.
         """
-        SELECT id, note_id, content, position, created_at, updated_at
-        FROM snippet
-        WHERE note_id = ?
-        ORDER BY position ASC NULLS LAST, created_at ASC
-        """,
-        (note_id,)
-    ).fetchall()
+        stmt = select(Workspace).where(Workspace.user_id == user_id).order_by(Workspace.created_at.asc())
+        return session.execute(stmt).scalars().all()
 
-    if close_conn:
-        conn.close()
+    @classmethod
+    def delete(cls, session: Session, workspace_id: str) -> bool:
+        ws = cls.get(session, workspace_id)
+        if not ws:
+            return False
+        session.delete(ws)
+        session.commit()
+        return True
 
-    return [Snippet(*row) for row in rows]
-
-
-def insert_note(note: Note, conn: Optional[sqlite3.Connection] = None):
-    close_conn = False
-    if conn is None:
-        conn = get_connection()
-        close_conn = True
-
-    conn.execute(
+    @classmethod
+    def update_model_config(cls, session: Session, workspace_id: str, model_backend: str, model_config: Optional[str]) -> bool:
         """
-        INSERT INTO note (id, workspace_id, title, archived, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (note.id, note.workspace_id, note.title, note.archived, note.created_at, note.updated_at)
-    )
-    conn.commit()
-    if close_conn:
-        conn.close()
-
-
-def insert_snippet(snippet: Snippet, conn: Optional[sqlite3.Connection] = None):
-    close_conn = False
-    if conn is None:
-        conn = get_connection()
-        close_conn = True
-
-    conn.execute(
+        Update the model configuration for a workspace. 
         """
-        INSERT INTO snippet (id, note_id, content, position, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (snippet.id, snippet.note_id, snippet.content, snippet.position, snippet.created_at, snippet.updated_at)
-    )
-    conn.commit()
-    if close_conn:
-        conn.close()
+        ws = cls.get(session, workspace_id)
+        if not ws:
+            return False
+        ws.model_backend = model_backend
+        ws.model_config = model_config
+        ws.updated_at = datetime.now()
+        session.commit()
+        return True
+    
+class UserCRUD:
+    @classmethod
+    def get(cls, session: Session, user_id: str) -> Optional[User]:
+        """
+        Get a user by ID.
+        """
+        return session.get(User, user_id)
+    
+    @classmethod
+    def create(cls, session: Session, name: str, user_id: str = None) -> User:
+        # TODO not the best logic...
+        if not user_id:
+            user_id = str(uuid4())
+        user = User(
+            id=user_id,
+            name=name
+        )
+        session.add(user)
+        session.commit()
+        return user
+    
+class NoteCRUD:
+    @classmethod
+    def create(
+        cls,
+        session: Session,
+        workspace_id: str,
+        title: Optional[str],
+        snippets: List[str],
+        tags: Optional[Set[str]] = None,
+        entities: Optional[Set[str]] = None,
+        times: Optional[List[tuple]] = None,  # list of (literal, scope)
+    ) -> Note:
+        note = Note(
+            id=str(uuid4()),
+            workspace_id=workspace_id,
+            title=title,
+        )
+
+        if tags:
+            for tag_name in tags:
+                tag = session.get(Tag, tag_name) or Tag(name=tag_name)
+                note.tags.append(tag)
+
+        if entities:
+            for entity_name in entities:
+                entity = session.get(Entity, entity_name) or Entity(name=entity_name)
+                note.entities.append(entity)
+
+        if times: # TODO
+            for literal, scope in times:
+                time_expr = TimeExpr(
+                    value=f"{literal}-{scope}", literal=literal, scope=scope
+                )
+                note.time_exprs.append(time_expr)
+
+        session.add(note)
+        session.flush()  # get note.id before inserting snippets
+
+        for i, content in enumerate(snippets):
+            snippet = Snippet(
+                id=str(uuid4()),
+                note_id=note.id,
+                content=content,
+                position=i,
+            )
+            session.add(snippet)
+
+        session.commit()
+        return note
+
+    @classmethod
+    def get(cls, session: Session, note_id: str) -> Optional[Note]:
+        return session.get(Note, note_id)
+
+    @classmethod
+    def list_by_workspace(cls, session: Session, workspace_id: str) -> List[Note]:
+        stmt = select(Note).where(Note.workspace_id == workspace_id).order_by(Note.updated_at.desc())
+        return session.execute(stmt).scalars().all()
+
+    @classmethod
+    def delete(cls, session: Session, note_id: str) -> bool:
+        note = cls.get(session, note_id)
+        if not note:
+            return False
+        session.delete(note)
+        session.commit()
+        return True
+
+    @classmethod
+    def archive(cls, session: Session, note_id: str) -> bool:
+        note = cls.get(session, note_id)
+        if not note:
+            return False
+        note.archived = True
+        note.updated_at = datetime.utcnow()
+        session.commit()
+        return True

@@ -1,6 +1,7 @@
 import click
 
 from . import hn
+from .workspace import use as workspace_use
 
 # === Aliases ===
 @hn.command(name="show")
@@ -20,3 +21,9 @@ def new_alias(title):
 def list_alias(all):
     pass
     # list.invoke(click.Context(list), all=all)
+
+@hn.command()
+@click.option('--name', help='Name of the workspace')
+@click.option('--id', help='ID of the workspace')
+def use(id: str = None, name: str = None):
+    workspace_use(id=id, name=name)
