@@ -1,15 +1,17 @@
 # hackernotes/db/__init__.py
-
-from .schema import SCHEMA_SQL
-import sqlite3
 import os
+
+import sqlite3
+from sqlalchemy import create_engine
+
+# from .schema import SCHEMA_SQL
+from .models import Base
 
 from ..utils.config import CONFIG_DIR, DB_PATH, update_config
 from ..utils.term import print_sys
 
-def get_connection(db_path: str = DB_PATH):
-    """Get a connection to the SQLite database."""
-    return sqlite3.connect(db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+def get_engine():
+    return create_engine(f"sqlite:///{DB_PATH}", future=True)
 
 def init_db(db_path: str = DB_PATH, db_suffix: str = ".db"):
     """Initialize the database and create tables if they don't exist."""
@@ -28,11 +30,8 @@ def init_db(db_path: str = DB_PATH, db_suffix: str = ".db"):
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     # Initialize the database
-    conn = get_connection(db_path=db_path)
-    cursor = conn.cursor()
-    cursor.executescript(SCHEMA_SQL)
-    conn.commit()
-    conn.close()
+    engine = get_engine()
+    Base.metadata.create_all(engine)
     print_sys(f"[+] Database initialized at {db_path}")
 
     # Update config

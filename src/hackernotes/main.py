@@ -3,9 +3,9 @@
 import sys
 import logging
 
-from .cli import hn  # entrypoint CLI group (Click)
+from .cli import db, hn  # entrypoint CLI group (Click)
 # register CLI commands
-from .cli import general, note, annotation, aliases, graph, workspace, ai
+from .cli import note, annotation, aliases, graph, workspace, ai
 
 # Optional: setup logging or tracing
 logging.basicConfig(level=logging.INFO)

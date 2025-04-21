@@ -37,6 +37,15 @@ poetry install
 
 # run CLI
 poetry run hn
+
+# initialize DB
+hn db init 
+
+# check
+sqlite3 ~/.hackernotes/notes.db ".tables"
+
+# clean up 
+hn db remove
 ```
 
 ---
