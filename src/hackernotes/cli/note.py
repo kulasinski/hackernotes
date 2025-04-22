@@ -5,7 +5,7 @@ from tabulate import tabulate
 
 
 from . import hn, preflight
-from ..core.interactive import handle_create_note
+from ..core.interactive import handle_create_note, handle_edit_note
 from ..core.note import NoteService
 from ..db import SessionLocal
 from ..db.query import NoteCRUD
@@ -48,9 +48,11 @@ def show(note_id, title, width):
 
 @note.command()
 @click.argument('note_id', required=False)
-def edit(note_id):
+@click.option("--width", type=int, default=50, help="Set the width for displaying the note")
+def edit(note_id, width):
     """Edit a note (last edited if none specified)."""
-    pass
+    with SessionLocal() as session:
+        handle_edit_note(session, note_id, width=width)
 
 @note.command()
 @click.argument('note_id')

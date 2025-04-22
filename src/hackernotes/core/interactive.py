@@ -35,6 +35,28 @@ def handle_create_note(session, title: str):
     
     signal.signal(signal.SIGINT, handle_interrupt)
 
+    # Create interactively
     NoteService(note).interactive_create(session)
+
+def handle_edit_note(session, note_id: str, width: int = 50):
+    """
+    Handle the interactive editing of a note.
+    """
+
+    # Get note from database
+    note = NoteCRUD.get(session, note_id=note_id)
+    if not note:
+        print_warn(f"Note with ID {note_id} not found.")
+        return
+    
+    # clear_terminal()
+    print_sys("Enter snippets one by one. (Ctrl+D to save note):")
+
+    # Display the current note's state
+    ns = NoteService(note)
+    ns.display(width=width, footer=False)
+
+    # Edit interactively
+    ns.interactive_create(session)
     
     
