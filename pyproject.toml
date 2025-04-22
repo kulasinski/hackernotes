@@ -1,9 +1,9 @@
 [project]
 name = "hackernotes"
 version = "0.1.0"
-description = "Hacker Notes - GenAI-supported note-taking via Terminal"
+description = "Terminal-first GenAI-supported note-taking system."
 authors = [
-    {name = "kulasinski",email = "kulasinski@gmail.com"}
+    {name = "Karol Kulasinski",email = "kulasinski@gmail.com"}
 ]
 license = {text = "Apache"}
 readme = "README.md"
