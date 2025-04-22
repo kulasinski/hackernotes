@@ -30,7 +30,7 @@ def db(db_path: str):
 @click.option('--db_path', default=DB_PATH, help="Path to the database file.")
 @click.option('--username', default=os.getlogin(), help="User name")
 @click.option('--workspace', default=ACTIVE_WORKSPACE, help="First and default workspace name")
-def init_all(db_path: str, username: str, workspace: str):
+def init_all(db_path: str, username: str, workspace: str): # TODO move it outside of CLI
     """Initialize HackerNotes for first-time use."""
 
     # Initialize DB
@@ -58,15 +58,11 @@ def init_all(db_path: str, username: str, workspace: str):
             "workspace_id": ws.id,
             "title": "Welcome to HackerNotes!",
             "snippets": [
-                "This is your first note. You can edit it later, e.g. ^tomorrow.",
-                "Use the `hackernotes` command to manage your notes. #protip",
-                "I'm sure you are working on some @GrandVision !"
-                "Happy hacking!"
-            ],
-            "tags": {"protip"},
-            "entities": {"GrandVision"},
-            "times": [
-                ("tomorrow", TimeScope.DAY.value),
+                dict(content="This is your first note. You can edit it later, e.g. ^tomorrow.", times=[dict(literal="tomorrow", scope=TimeScope.DAY.value)]),
+                dict(content="Use the `hackernotes` command to manage your notes. #protip", tags={"protip"}),
+                dict(content="I'm sure you are working on some @GrandVision !", entities={"GrandVision"}),
+                dict(content="Happy hacking!"),
+                dict(content="#test", annotations_only=True),
             ]
         }
         note = NoteCRUD.create(

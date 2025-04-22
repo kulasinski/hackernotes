@@ -12,40 +12,40 @@ from ..core.types import (
 Base = declarative_base()
 
 # Association tables for annotations
-note_tag = Table(
-    "note_tag", Base.metadata,
-    Column("note_id", String, ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_name", String, ForeignKey("tag.name"), primary_key=True)
-)
+# note_tag = Table(
+#     "note_tag", Base.metadata,
+#     Column("note_id", String, ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
+#     Column("tag_name", String, ForeignKey("tag.name"), primary_key=True)
+# )
 
-note_entity = Table(
-    "note_entity", Base.metadata,
-    Column("note_id", String, ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
-    Column("entity_name", String, ForeignKey("entity.name"), primary_key=True)
-)
+# note_entity = Table(
+#     "note_entity", Base.metadata,
+#     Column("note_id", String, ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
+#     Column("entity_name", String, ForeignKey("entity.name"), primary_key=True)
+# )
 
-note_time_expr = Table(
-    "note_time_expr", Base.metadata,
-    Column("note_id", String, ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
-    Column("time_value", String, ForeignKey("time_expr.value"), primary_key=True)
-)
+# note_time_expr = Table(
+#     "note_time_expr", Base.metadata,
+#     Column("note_id", String, ForeignKey("note.id", ondelete="CASCADE"), primary_key=True),
+#     Column("time_value", String, ForeignKey("time_expr.value"), primary_key=True)
+# )
 
 snippet_tag = Table(
     "snippet_tag", Base.metadata,
-    Column("snippet_id", String, ForeignKey("snippet.id", ondelete="CASCADE"), primary_key=True),
+    Column("snippet_id", String, ForeignKey("snippet.id", ondelete="CASCADE"), primary_key=True), # TODO check if ondelete is correctly implemented
     Column("tag_name", String, ForeignKey("tag.name"), primary_key=True)
 )
 
 snippet_entity = Table(
     "snippet_entity", Base.metadata,
-    Column("snippet_id", String, ForeignKey("snippet.id", ondelete="CASCADE"), primary_key=True),
+    Column("snippet_id", String, ForeignKey("snippet.id", ondelete="CASCADE"), primary_key=True), # TODO check if ondelete is correctly implemented
     Column("entity_name", String, ForeignKey("entity.name"), primary_key=True)
 )
 
 snippet_time_expr = Table(
     "snippet_time_expr", Base.metadata,
     Column("snippet_id", String, ForeignKey("snippet.id", ondelete="CASCADE"), primary_key=True),
-    Column("time_value", String, ForeignKey("time_expr.value"), primary_key=True)
+    Column("time_expr_id", String, ForeignKey("time_expr.id", ondelete="CASCADE"),  primary_key=True)
 )
 
 # Main tables
@@ -83,9 +83,6 @@ class Note(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     snippets = relationship("Snippet", backref="note", cascade="all, delete-orphan")
-    tags = relationship("Tag", secondary=note_tag, backref="notes")
-    entities = relationship("Entity", secondary=note_entity, backref="notes")
-    time_exprs = relationship("TimeExpr", secondary=note_time_expr, backref="notes")
 
 class Snippet(Base):
     __tablename__ = "snippet"
@@ -93,6 +90,7 @@ class Snippet(Base):
     note_id = Column(String, ForeignKey("note.id", ondelete="CASCADE"))
     content = Column(Text, nullable=False)
     position = Column(Integer)
+    annotations_only = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now)
 

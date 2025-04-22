@@ -134,6 +134,63 @@ hackernotes/
 └── main.py                  # CLI entry point (loads Click commands)
 ```
 
+The /core module should encapsulate your domain logic — the operations and rules that govern how HackerNotes behaves, beyond persistence or UI.
+
+Think of it as the “brain” layer that coordinates between the database, LLMs, and CLI.
+
+✅ Recommended /core Structure
+core/
+├── __init__.py
+├── note.py              # Note lifecycle logic (e.g. add snippet, auto-annotate)
+├── workspace.py         # Session + context switching
+├── graph.py             # Walk/expand/assign graph nodes
+├── llm.py               # Wrap LLM requests + prompt injection
+├── prompt.py            # Prompt types, templates, generator logic
+├── annotation.py        # Extraction + merge of #tag, @entity, *time
+├── automation.py        # Task queue & scheduler execution logic
+✅ What Goes in Each Module?
+note.py
+
+NoteService.create_note(...)
+NoteService.insert_snippet(...)
+Attach annotations to snippets
+Reorder snippets
+workspace.py
+
+Get/set active workspace
+Load workspace settings (LLM config, etc.)
+graph.py
+
+Traverse parent/child nodes
+Auto-place note under graph node (using LLM or rules)
+Extend graph from note content
+llm.py
+
+Unified interface to openai, ollama, etc.
+Generate, classify, summarize
+prompt.py
+
+PromptTemplate class
+Render prompt from note
+Save responses to DB or file
+annotation.py
+
+Regex + LLM-based extractors for:
+#tags, @entities, *time
+De-duplication, fallback logic
+automation.py
+
+Create and enqueue tasks
+Run queued tasks on schedule
+Result processing
+🧠 Summary
+
+Layer	Role
+db/	Data persistence and schema
+core/	Domain logic, LLMs, graph, rules
+cli/	Command parsing and interaction
+
+
 ---
 
 ## Full Command List

@@ -43,6 +43,6 @@ def erase():
     if os.path.exists(CONFIG_DIR):
         os.remove(CONFIG_PATH)
         os.rmdir(CONFIG_DIR)
-        print_sys(f"Configuration directory at {CONFIG_DIR} deleted.")
+        print_sys(f"[+] Configuration directory at {CONFIG_DIR} deleted.")
     else:
         print_err(f"No configuration directory found at {CONFIG_DIR}.")

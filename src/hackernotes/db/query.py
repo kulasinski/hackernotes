@@ -96,10 +96,7 @@ class NoteCRUD:
         session: Session,
         workspace_id: str,
         title: Optional[str],
-        snippets: List[str],
-        tags: Optional[Set[str]] = None,
-        entities: Optional[Set[str]] = None,
-        times: Optional[List[tuple]] = None,  # list of (literal, scope)
+        snippets: List[dict],
     ) -> Note:
         note = Note(
             id=str(uuid4()),
@@ -107,34 +104,23 @@ class NoteCRUD:
             title=title,
         )
 
-        if tags:
-            for tag_name in tags:
-                tag = session.get(Tag, tag_name) or Tag(name=tag_name)
-                note.tags.append(tag)
-
-        if entities:
-            for entity_name in entities:
-                entity = session.get(Entity, entity_name) or Entity(name=entity_name)
-                note.entities.append(entity)
-
-        if times: # TODO
-            for literal, scope in times:
-                time_expr = TimeExpr(
-                    value=f"{literal}-{scope}", literal=literal, scope=scope
-                )
-                note.time_exprs.append(time_expr)
-
         session.add(note)
         session.flush()  # get note.id before inserting snippets
 
-        for i, content in enumerate(snippets):
-            snippet = Snippet(
-                id=str(uuid4()),
+        for i, snippet_kwargs in enumerate(snippets):
+            SnippetCRUD.create(
+                session,
                 note_id=note.id,
-                content=content,
                 position=i,
+                **snippet_kwargs
             )
-            session.add(snippet)
+            # snippet = Snippet(
+            #     id=str(uuid4()),
+            #     note_id=note.id,
+            #     content=content,
+            #     position=i,
+            # )
+            # session.add(snippet)
 
         session.commit()
         return note
@@ -166,3 +152,49 @@ class NoteCRUD:
         note.updated_at = datetime.utcnow()
         session.commit()
         return True
+    
+class SnippetCRUD:
+    @classmethod
+    def create(
+        cls,
+        session: Session,
+        note_id: str = None,
+        content: str = None,
+        position: Optional[int] = None,
+        tags: Optional[Set[str]] = None,
+        entities: Optional[Set[str]] = None,
+        times: Optional[List[dict]] = None,
+        annotations_only: Optional[bool] = False,
+    ) -> Snippet:
+        
+        if note_id is None:
+            raise ValueError("Note ID must be provided.")
+        if content is None:
+            raise ValueError("Snippet content must be provided.")
+        
+        snippet = Snippet(
+            id=str(uuid4()),
+            note_id=note_id,
+            content=content,
+            position=position,
+            annotations_only=annotations_only,
+        )
+
+        if tags:
+            for tag_name in tags:
+                tag = session.get(Tag, tag_name) or Tag(name=tag_name)
+                snippet.tags.append(tag)
+
+        if entities:
+            for entity_name in entities:
+                entity = session.get(Entity, entity_name) or Entity(name=entity_name)
+                snippet.entities.append(entity)
+
+        if times: # TODO
+            for time_kwargs in times:
+                time_expr = TimeExpr(**time_kwargs)
+                snippet.time_exprs.append(time_expr)
+
+        session.add(snippet)
+        session.commit()
+        return snippet
