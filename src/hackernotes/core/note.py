@@ -3,7 +3,10 @@
 from datetime import datetime
 from uuid import uuid4
 from typing import Optional, List, Set
+from colorama import Fore, Style
 from sqlalchemy.orm import Session
+
+from hackernotes.utils.term import fentity, fsys, ftag
 
 from ..db.models import Note, Snippet, Tag, Entity, TimeExpr
 from ..utils.datetime import dateFormat
@@ -11,6 +14,7 @@ from ..utils.datetime import dateFormat
 class NoteService():
     def __init__(self, note: Note):
         self.note = note
+        self.snippets = sorted(note.snippets, key=lambda x: x.position)
 
     @property
     def id(self) -> str:
@@ -53,6 +57,50 @@ class NoteService():
         if format:
             return self.note.updated_at.strftime(format)
         return self.note.updated_at
+    
+    @staticmethod
+    def displaySnippet(snippet: Snippet):
+        snippet_content = snippet.content
+        # Highlight tags and entities
+        for tag in snippet.tags:
+            snippet_content = snippet_content.replace(f"#{tag.name}", f"{Fore.GREEN}#{tag.name}{Style.RESET_ALL}")
+        for entity in snippet.entities:
+            snippet_content = snippet_content.replace(f"@{entity.name}", f"{Fore.MAGENTA}@{entity.name}{Style.RESET_ALL}")
+        
+        # Highlight times # TODO !!!
+
+        # Highlight URLs # TODO ???
+        # for url in snippet.urls:
+        #     snippet_content = snippet_content.replace(url, f"{Fore.LIGHTBLACK_EX}{url}{Style.RESET_ALL}")
+        # Display snippet
+        print(f"{Fore.CYAN}[{snippet.position}]{Style.RESET_ALL} {snippet_content}")
+    
+    def display(self, width: int = 80, footer: bool = True):
+        """Displays the note in a formatted way."""
+        print("\n"+"=" * width)
+        print(fsys("Note title: ")+self.title)
+        print(fsys(f"Created at: {self.getCreatedAt()}"))
+        print("-" * width)
+
+        # (Re)-order snippets by position
+        self.snippets = sorted(self.snippets, key=lambda x: x.position)
+
+        # Display snippets
+        for snippet in self.snippets:
+            NoteService.displaySnippet(snippet)
+            
+        if footer:
+            print("-" * width)
+            if self.entities:
+                print(fsys("Entities: ")+', '.join([fentity(e) for e in self.entities]))
+            if self.tags:
+                print(fsys("Tags: ")+', '.join([ftag(tag) for tag in self.tags]))
+            # if self.timesAll: # TODO 
+            #     print(fsys("Times: ")+', '.join([f"{time.literal} ({time.scope})" for time in self.timesAll]))
+            # if self.urls: # TODO ??
+            #     print(fsys("URLs: ")+', '.join([f"{Fore.LIGHTBLACK_EX}{url.value}{Style.RESET_ALL}" for url in self.urls]))
+
+            print("=" * width + "\n")
 
 # class NoteService:
 #     @staticmethod

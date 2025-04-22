@@ -7,7 +7,7 @@ from . import hn, preflight
 from ..core.note import NoteService
 from ..db import SessionLocal
 from ..db.query import NoteCRUD
-from ..utils.term import fentity, fsys, ftag
+from ..utils.term import clear_terminal, fentity, fsys, ftag, print_warn
 
 # === Note Commands ===
 @hn.group()
@@ -23,10 +23,24 @@ def new(title):
 
 @note.command()
 @click.argument('note_id', required=False)
+@click.option("--title", type=str, help="Fetch by the note title")
 @click.option("--width", type=int, default=50, help="Set the width for displaying the note")
-def show(note_id):
+def show(note_id, title, width):
     """Show a note (last edited if none specified)."""
-    pass
+    with SessionLocal() as session:
+        if note_id:
+            note = NoteCRUD.get(session, note_id=note_id)
+        elif title:
+            note = NoteCRUD.get(session, title=title)
+        else:
+            note = NoteCRUD.get(session)
+        if not note:
+            print_warn(f"No note found with ID: {note_id} or title: {title}")
+            return
+        
+    clear_terminal()
+    NoteService(note).display(width=width, footer=True)
+
 
 @note.command()
 @click.argument('note_id', required=False)

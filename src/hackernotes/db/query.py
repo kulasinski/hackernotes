@@ -122,8 +122,35 @@ class NoteCRUD:
         return note
 
     @classmethod
-    def get(cls, session: Session, note_id: str) -> Optional[Note]:
-        return session.get(Note, note_id)
+    def get(cls, session: Session, note_id: str = None, title: str = None) -> Optional[Note]: #TODO add fetch security -- what about workspace id? not needed because user is quite specific!
+        """
+        Get a note by ID or title. If both are provided, ID takes precedence.
+        """
+
+        # Basic query
+        stmt = select(Note)\
+            .options(
+                joinedload(Note.snippets),  # Eagerly load snippets
+                joinedload(Note.snippets, Snippet.tags),  # Eagerly load snippet tags
+                joinedload(Note.snippets, Snippet.entities),  # Eagerly load snippet entities
+                joinedload(Note.snippets, Snippet.time_exprs),  # Eagerly load snippet time expressions
+            )\
+            .limit(1)
+        
+        if note_id is None and title is None:
+            print_sys("No note ID or title provided. Returning last edited note.")
+            stmt = stmt.order_by(Note.updated_at.desc())
+            
+        elif note_id is not None:
+            stmt = stmt.where(Note.id == note_id)
+
+        elif title is not None:
+            stmt = stmt.where(Note.title == title)
+            
+        else:
+            raise ValueError("Weird... this should not happen. Please check the code.")
+
+        return session.execute(stmt).unique().scalars().one_or_none()
 
     @classmethod
     def list_by_workspace(cls, session: Session, workspace_name: str = config["active_workspace"], **filters) -> List[Note]:
