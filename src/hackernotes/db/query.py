@@ -229,7 +229,7 @@ class NoteCRUD:
             return False
         
         if confirm:
-            confirmation = input(fwarn("Are you sure you want to delete note ID")+note_id+fwarn("? (y/n): "))
+            confirmation = input(fwarn(f"Are you sure you want to delete note {note_id}? (y/n): "))
             if confirmation.lower() not in ["y", "yes"]:
                 return None
             

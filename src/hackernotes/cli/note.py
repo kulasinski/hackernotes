@@ -56,13 +56,15 @@ def edit(note_id):
 @click.argument('note_id')
 def archive(note_id):
     """Archive (soft delete) a note."""
-    pass
+    with SessionLocal() as session:
+        NoteCRUD.archive(note_id)
 
 @note.command()
 @click.argument('note_id')
 def delete(note_id):
     """Permanently delete a note."""
-    pass
+    with SessionLocal() as session:
+        NoteCRUD.delete(session, note_id, confirm=True)
 
 @note.command()
 @click.argument('note_id')
