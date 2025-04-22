@@ -1,20 +1,24 @@
 # core/note.py
 
 from datetime import datetime
+import signal
+import sys
 from uuid import uuid4
 from typing import Optional, List, Set
+
+import click
 from colorama import Fore, Style
 from sqlalchemy.orm import Session
 
-from hackernotes.utils.term import fentity, fsys, ftag
-
+from ..db.query import NoteCRUD, SnippetCRUD
 from ..db.models import Note, Snippet, Tag, Entity, TimeExpr
+from ..utils.term import clear_terminal, clear_terminal_line, fentity, fsys, ftag, print_err, print_sys
 from ..utils.datetime import dateFormat
 
 class NoteService():
     def __init__(self, note: Note):
         self.note = note
-        self.snippets = sorted(note.snippets, key=lambda x: x.position)
+        self.snippets: List[Snippet] = sorted(note.snippets, key=lambda x: x.position)
 
     @property
     def id(self) -> str:
@@ -102,6 +106,113 @@ class NoteService():
 
             print("=" * width + "\n")
 
+    def add_snippet(self, session, content: str, display: bool=False) -> Optional[Snippet]:
+        """Adds a snippet to a note and DB and extracts tags/entities."""
+
+        # Extract tags, entities, and URLs
+        tags, entities = {}, {} # extract_tags_and_entities(content) # TODO
+        times = [] # TODO
+        # urls = extract_urls(content) # TODO ???
+
+        # check if snippet is composed of tags only. If so, do not add a snippet, instead add tags to note
+        # DEPRECATED
+        # if containsTagsOnly(content):
+        #     if display:
+        #         clear_terminal_line()
+        #     self.tags.update(tags)
+        #     self.persist(db=db)
+        #     print(f"{Fore.CYAN}✅ Tags {tags} added to current note{Style.RESET_ALL}")
+        #     return None
+
+        # Create snippet object (+persist)
+        snippet = SnippetCRUD.create(
+            session,
+            note_id=self.id,
+            content=content,
+            position=len(self.snippets),
+            tags=tags,
+            entities=entities,
+            times=times,
+            annotations_only=False # TODO
+        )
+
+        if not snippet:
+            print_err(f"❌ Failed to create snippet")
+            return None
+        
+        # Add snippet to the instance
+        self.snippets.append(snippet)
+
+        if display:
+            clear_terminal_line()
+            NoteService.displaySnippet(snippet)
+            # snippet.display(ord=len(self.snippets)+1)
+
+        return snippet
+
+    def interactive_create(self, session):
+        """Interactive input for note creation or update."""
+
+        def handle_exit(sig, frame):
+            clear_terminal_line()
+            # self.to_queue() # TODO
+            print_sys(f"[+] Note {self.id} saved and added to the queue.")
+            sys.exit(0)
+
+        signal.signal(signal.SIGQUIT, handle_exit)
+
+        # Loop to accept multiple snippets from the user
+        marked_for_reinput = False # Flag to reinput the current snippet
+        while True:
+            try:
+                content = click.prompt(fsys("> "), prompt_suffix="")
+            except click.Abort:
+                handle_exit(None, None)
+            if not content.strip():
+                continue
+
+            # --- Check for special commands --- # TODO let the user know about those special commands
+            if content in ["/exit", "/quit", "/q"]:
+                # --- Exit ---
+                handle_exit(None, None)
+            # if content.startswith("/delete ") or content.startswith("/d ") or content.startswith("/del "):
+            #     # --- Delete snippet ---
+            #     snippet_ord = int(content.split()[1])
+            #     self.handle_snippet_delete(snippet_ord=snippet_ord, db=db)
+            #     # Reinput the current snippet and exit the current loop
+            #     marked_for_reinput = True
+            #     break
+            if content.startswith("/archive"):
+                NoteCRUD.archive(session, self.id)
+                break
+            # if content.startswith("/edit") or content.startswith("/e"):
+            #     # --- Edit snippet ---
+            #     snippet_ord = int(content.split()[1])
+            #     snippet = self.snippets[snippet_ord-1]
+            #     # Use `prompt` with a default value
+            #     snippet.content = prompt(f"[{snippet_ord}] (edit): ", default=snippet.content)
+            #     snippet.persist(note_id=self.id, db=db)
+            #     marked_for_reinput = True
+            #     break
+            # if content == "/title":
+            #     # --- Edit title ---
+            #     self.title = prompt("Title (edit): ", default=self.title)
+            #     self.persist(db=db)
+            #     marked_for_reinput = True
+            #     break
+            # if content.startswith("/time"):
+            #     # --- Add time ---
+            #     literal = " ".join(content.split(" ", 1)[1:])
+            #     self.add_time(literal, db=db)
+            #     marked_for_reinput = True
+            #     break
+            self.add_snippet(session, content, display=True)
+
+        if marked_for_reinput:
+            clear_terminal()
+            self.display(footer=False)
+            self.interactive_create(session)
+            
 # class NoteService:
 #     @staticmethod
 #     def create_note(

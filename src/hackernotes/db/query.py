@@ -5,7 +5,7 @@ from datetime import datetime
 from uuid import uuid4
 from typing import Optional, List, Set
 
-from hackernotes.utils.term import print_sys, print_warn
+from hackernotes.utils.term import fwarn, print_sys, print_warn
 
 from .models import Entity, Note, Snippet, Tag, TimeExpr, User, Workspace
 from ..utils.config import config
@@ -25,6 +25,18 @@ class WorkspaceCRUD:
         session.add(ws)
         session.commit()
         return ws
+    
+    @classmethod
+    def get_current(cls, session: Session) -> Optional[Workspace]:
+        """
+        Get the current workspace based on the active workspace name in the config.
+        """
+        active_workspace = config["active_workspace"]
+        if not active_workspace:
+            raise ValueError("No active workspace found in config.")
+        
+        stmt = select(Workspace).where(Workspace.name == active_workspace)
+        return session.execute(stmt).scalars().one_or_none()
 
     @classmethod
     def get(cls, session: Session, workspace_id: str = None, workspace_name: str = None) -> Optional[Workspace]:
@@ -211,12 +223,19 @@ class NoteCRUD:
         return session.execute(stmt).unique().scalars().all()
 
     @classmethod
-    def delete(cls, session: Session, note_id: str) -> bool:
+    def delete(cls, session: Session, note_id: str, confirm: bool = True) -> bool:
         note = cls.get(session, note_id)
         if not note:
             return False
+        
+        if confirm:
+            confirmation = input(fwarn("Are you sure you want to delete note ID")+note_id+fwarn("? (y/n): "))
+            if confirmation.lower() not in ["y", "yes"]:
+                return None
+            
         session.delete(note)
         session.commit()
+        print_sys(f"Note {note_id} deleted.")
         return True
 
     @classmethod

@@ -3,10 +3,13 @@ from typing import List
 import click
 from tabulate import tabulate
 
+
 from . import hn, preflight
+from ..core.interactive import handle_create_note
 from ..core.note import NoteService
 from ..db import SessionLocal
 from ..db.query import NoteCRUD
+from ..utils.datetime import now
 from ..utils.term import clear_terminal, fentity, fsys, ftag, print_warn
 
 # === Note Commands ===
@@ -16,10 +19,11 @@ def note():
     preflight()
 
 @note.command()
-@click.argument('title', required=False)
-def new(title):
+@click.argument('title', type=str, required=False, default=f'Untitled {now()}')
+def new(title: str):
     """Create new note with optional title."""
-    pass
+    with SessionLocal() as session:
+        handle_create_note(session, title)
 
 @note.command()
 @click.argument('note_id', required=False)
