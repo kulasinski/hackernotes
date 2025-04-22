@@ -1,7 +1,13 @@
 from typing import List
+
 import click
+from tabulate import tabulate
 
 from . import hn, preflight
+from ..core.note import NoteService
+from ..db import SessionLocal
+from ..db.query import NoteCRUD
+from ..utils.term import fentity, fsys, ftag
 
 # === Note Commands ===
 @hn.group()
@@ -13,12 +19,6 @@ def note():
 @click.argument('title', required=False)
 def new(title):
     """Create new note with optional title."""
-    pass
-
-@note.command()
-@click.option('--all', is_flag=True, help="List all notes including archived.")
-def list(all):
-    """List notes."""
     pass
 
 @note.command()
@@ -56,37 +56,30 @@ def export(note_id):
 @click.option('--tag', '-t', multiple=True, help="Filter by tags")
 @click.option('--entity', '-e', multiple=True, help="Filter by entities")
 @click.option('--content', '-c', multiple=True, help="Filter by content")
+@click.option('--limit', type=int, default=10, help="Limit the number of notes displayed.")
 @click.option('--all', is_flag=True, help="List all notes including archived.")
-# def list(tag: tuple[str, ...], entity: tuple[str, ...], content: tuple[str, ...], all: bool):
+@click.option('--archived', is_flag=True, help="List archived notes.")
 def list(*args, **kwargs):
     """Lists notes based on provided filters (tags, entities, or content)."""
 
-    print("args:", args)
-    print("kwargs:", kwargs)
-
-    return
-
-    notes = Note.search(filters)
-
-    if not filters:
-        click.echo(f"WARNING: Listing ALL {len(notes)} notes... Please provide at least one filter (tag, entity, or content) for better results.")
-    else:
-        click.echo(f"Found {len(notes)} notes matching filters: {filters}")
+    with SessionLocal() as session:
+        notes = [NoteService(n) for n in NoteCRUD.list_by_workspace(session, **kwargs)]
 
     if not notes:
-        click.echo(f"No notes found matching filters: {filters}")
+        click.echo(f"No notes found.")
         return
     
     headers = [fsys("ID"), fsys("Title"), fsys("Snippets"), fsys("Created At"), fsys("Tags"), fsys("Entities"), fsys("Times")]
     table = [
         [
-            fsys(str(note.id)),
+            fsys(note.id),
             note.title,
-            len(note.snippets),
-            note.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            ", ".join([ftag(tag) for tag in note.tagsAll]),
-            ", ".join([fentity(entity) for entity in note.entitiesAll]),
-            ", ".join([f"{t.literal}" for t in note.timesAll])
+            note.size,
+            note.getCreatedAt(),
+            ", ".join([ftag(tag) for tag in note.tags]),
+            ", ".join([fentity(entity) for entity in note.entities]),
+            # ", ".join([f"{t.literal}" for t in note.timesAll])
+            "Times not implemented"
         ]
         for note in notes
     ]

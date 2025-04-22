@@ -1,11 +1,14 @@
 # hackernotes/db/query.py
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select
 from datetime import datetime
 from uuid import uuid4
 from typing import Optional, List, Set
 
+from hackernotes.utils.term import print_sys, print_warn
+
 from .models import Entity, Note, Snippet, Tag, TimeExpr, User, Workspace
+from ..utils.config import config
 
 class WorkspaceCRUD:
     @classmethod
@@ -114,13 +117,6 @@ class NoteCRUD:
                 position=i,
                 **snippet_kwargs
             )
-            # snippet = Snippet(
-            #     id=str(uuid4()),
-            #     note_id=note.id,
-            #     content=content,
-            #     position=i,
-            # )
-            # session.add(snippet)
 
         session.commit()
         return note
@@ -130,9 +126,62 @@ class NoteCRUD:
         return session.get(Note, note_id)
 
     @classmethod
-    def list_by_workspace(cls, session: Session, workspace_id: str) -> List[Note]:
-        stmt = select(Note).where(Note.workspace_id == workspace_id).order_by(Note.updated_at.desc())
-        return session.execute(stmt).scalars().all()
+    def list_by_workspace(cls, session: Session, workspace_name: str = config["active_workspace"], **filters) -> List[Note]:
+        # Get workspace ID from name
+        workspace_id = WorkspaceCRUD.get(session, workspace_name=workspace_name).id
+        if not workspace_id:
+            raise ValueError(f"Workspace `{workspace_name}` not found.")
+        
+        print_sys(f"Listing notes for workspace: {workspace_name} ({workspace_id}) with filters {filters}")
+
+        # Prepare the base query - eager join
+        stmt = select(Note)\
+            .where(Note.workspace_id == workspace_id)\
+            .options(
+                joinedload(Note.snippets),  # Eagerly load snippets
+                joinedload(Note.snippets, Snippet.tags),  # Eagerly load snippet tags
+                joinedload(Note.snippets, Snippet.entities),  # Eagerly load snippet entities
+                joinedload(Note.snippets, Snippet.time_exprs),  # Eagerly load snippet time expressions
+            )
+        
+        # Handle archived and active notes
+        if filters.get("archived", False): # list only archived notes when `archived` is specified
+            # print_sys(f"Listing archived notes for workspace: {workspace_name} ({workspace_id})")
+            stmt = stmt.where(Note.archived == True)
+        elif not filters.get("all", False): # list only active = non-archived notes when `all` is not specified
+            # print_sys(f"Listing active notes for workspace: {workspace_name} ({workspace_id})")
+            stmt = stmt.where(Note.archived == False)
+
+        # Handle tags
+        tags = filters.get("tag", None)
+        if tags:
+            for tag in tags:
+                stmt = stmt.join(Note.snippets).join(Snippet.tags).where(Tag.name.in_(tags))
+
+        # Handle entities
+        entities = filters.get("entity", None)
+        if entities:
+            for entity in entities:
+                stmt = stmt.join(Note.snippets).join(Snippet.entities).where(Entity.name.in_(entities))
+
+        # Handle content
+        content = filters.get("content", None)
+        if content:
+            for c in content:
+                stmt = stmt.where(Note.snippets.any(Snippet.content.ilike(f"%{c}%")))
+
+
+        # Handle limit
+        limit = filters.get("limit", None)
+        if limit:
+            stmt = stmt.limit(limit)
+        else:
+            print_warn(f"WARNING: Listing ALL notes in workspace. Please provide a limit or filters for better results.")
+
+        # Handle order
+        stmt.order_by(Note.updated_at.desc())
+
+        return session.execute(stmt).unique().scalars().all()
 
     @classmethod
     def delete(cls, session: Session, note_id: str) -> bool:
@@ -149,7 +198,7 @@ class NoteCRUD:
         if not note:
             return False
         note.archived = True
-        note.updated_at = datetime.utcnow()
+        note.updated_at = datetime.now()
         session.commit()
         return True
     

@@ -53,6 +53,13 @@ def print_sys(text: str):
     click.echo(fsys(text))
     # sys.stdout.flush()
 
+def print_warn(text: str):
+    """
+    Print warning message to the system console.
+    """
+    click.echo(fwarn(text))
+    # sys.stdout.flush()
+
 def print_err(text: str):
     """
     Print error message to the system console.

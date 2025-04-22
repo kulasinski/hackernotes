@@ -18,7 +18,7 @@ def preflight():
     if not os.path.exists(DB_PATH):
         click.echo("[!] Database not found. Run 'hn init' to set up the environment.")
         sys.exit(1)
-    click.echo("Preflight checks passed.")
+    # click.echo("Preflight checks passed.")
 
 @click.group()
 def hn():
