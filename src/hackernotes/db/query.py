@@ -1,14 +1,43 @@
 # hackernotes/db/query.py
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select
 from datetime import datetime
 from uuid import uuid4
 from typing import Optional, List, Set
 
-from hackernotes.utils.term import fwarn, print_sys, print_warn
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select, text
+from tabulate import tabulate
 
 from .models import Entity, Note, Snippet, Tag, TimeExpr, User, Workspace
 from ..utils.config import config
+from ..utils.term import fwarn, print_sys, print_warn
+
+def execute_query(session: Session, query: str):
+    """
+    Execute a SQLAlchemy query and return the result.
+    Print the output using tabulate.
+    """
+    try:
+        # Ensure the query is wrapped in text() if it's a raw SQL string
+        if isinstance(query, str):
+            query = text(query)
+        result = session.execute(query)
+        if result.returns_rows:
+            rows = result.fetchall()
+            if rows:
+                # Display using tabulate
+                headers = result.keys()
+                print_sys(tabulate(rows, headers=headers, tablefmt="grid"))
+                return rows, headers
+            else:
+                print_sys("Query executed successfully. No rows returned.")
+                return [], []
+        else:
+            print_sys("Query executed successfully. No rows returned.")
+            return None, None
+    except Exception as e:
+        print_warn(f"Error executing query: {e}")
+        raise e
+        return None, None
 
 class WorkspaceCRUD:
     @classmethod
@@ -19,8 +48,6 @@ class WorkspaceCRUD:
             name=name,
             model_backend=model_backend,
             model_config=model_config,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
         )
         session.add(ws)
         session.commit()
