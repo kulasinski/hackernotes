@@ -1,10 +1,13 @@
 import os 
 
 import click
+import readline
 
 from . import hn
+from ..db import SessionLocal
+from ..db.query import execute_query
 from ..utils.config import config
-from ..utils.term import print_err, print_sys, input_sys
+from ..utils.term import print_err, print_sys, input_sys, print_warn
 
 DB_PATH = config["db_path"]
 
@@ -32,3 +35,34 @@ def remove():
         return
     delete_db()
     # TODO: Remove all local files??
+
+@db.command()
+@click.argument('query', type=str, required=False)
+@click.option('--interactive', '-i', is_flag=True, help='Run in interactive mode.')
+def exec(query: str, interactive: bool):
+    """Execute a raw SQL query. Optionally run in interactive mode."""
+    if query:
+        with SessionLocal() as session:
+            execute_query(session, query)
+    elif interactive:
+        print_sys("Running in interactive mode. Type 'exit' or 'q' or to quit.")
+        historical_queries = []
+        while True:
+            try:
+                query = input("SQL> ")  # Use input() to allow readline to work
+                if query.lower() in ["exit", "q"]:
+                    print_sys("Exiting interactive mode gracefully.")
+                    break
+                if query.strip():  # Add non-empty queries to history
+                    historical_queries.append(query)
+                    readline.add_history(query)
+                with SessionLocal() as session:
+                    execute_query(session, query)
+            except KeyboardInterrupt:
+                print_sys("\nExiting interactive mode gracefully.")
+                break
+            except Exception as e:
+                print_err(f"Error: {e}")
+    else:
+        print_warn("No query provided. Use --interactive or -i to run in interactive mode.")
+        return
