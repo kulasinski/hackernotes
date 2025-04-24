@@ -248,6 +248,47 @@ class NoteCRUD:
         session.commit()
         return True
     
+    @classmethod
+    def update(
+        cls,
+        session: Session,
+        note_id: str,
+        title: Optional[str] = None,
+        snippets: Optional[List[dict]] = None,
+        tags: Optional[List[str]] = None,
+        entities: Optional[List[str]] = None,
+    ) -> Note:
+        
+        note = cls.get(session, note_id)
+        if not note:
+            return None
+        
+        if title:
+            note.title = title
+
+        # TODO check
+        # if snippets:
+        #     for i, snippet_kwargs in enumerate(snippets):
+        #         SnippetCRUD.create(
+        #             session,
+        #             note_id=note.id,
+        #             position=i,
+        #             **snippet_kwargs
+        #         )
+
+        # if tags:
+        #     for tag_name in tags:
+        #         tag = session.get(Tag, tag_name) or Tag(name=tag_name)
+        #         note.tags.append(tag)
+
+        # if entities:
+        #     for entity_name in entities:
+        #         entity = session.get(Entity, entity_name) or Entity(name=entity_name)
+        #         note.entities.append(entity)
+
+        session.commit()
+        return note
+    
 class SnippetCRUD:
     @classmethod
     def create(
@@ -291,5 +332,52 @@ class SnippetCRUD:
                 snippet.time_exprs.append(time_expr)
 
         session.add(snippet)
+        session.commit()
+        return snippet
+    
+    @classmethod
+    def delete(cls, session: Session, snippet_id: str) -> bool:
+        snippet = session.get(Snippet, snippet_id)
+        if not snippet:
+            return False
+        session.delete(snippet)
+        session.commit()
+        return True
+    
+    @classmethod
+    def update(
+        cls,
+        session: Session,
+        snippet_id: str,
+        content: Optional[str] = None,
+        position: Optional[int] = None,
+        tags: Optional[Set[str]] = None,
+        entities: Optional[Set[str]] = None,
+        times: Optional[List[dict]] = None,
+    ) -> Snippet:
+        
+        snippet = session.get(Snippet, snippet_id)
+        if not snippet:
+            return None
+        
+        if content:
+            snippet.content = content
+        if position:
+            snippet.position = position
+
+        if tags: # TODO check
+            for tag_name in tags:
+                tag = session.get(Tag, tag_name) or Tag(name=tag_name)
+                snippet.tags.append(tag)
+
+        if entities: # TODO check
+            for entity_name in entities:
+                entity = session.get(Entity, entity_name) or Entity(name=entity_name)
+                snippet.entities.append(entity)
+
+        if times: # TODO check
+            for time_kwargs in times:
+                time_expr = TimeExpr(**time_kwargs)
+                snippet.time_exprs.append(time_expr)
         session.commit()
         return snippet

@@ -9,6 +9,9 @@ from typing import Optional, List, Set
 import click
 from colorama import Fore, Style
 from sqlalchemy.orm import Session
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.formatted_text import HTML
 
 from ..db.query import NoteCRUD, SnippetCRUD
 from ..db.models import Note, Snippet, Tag, Entity, TimeExpr
@@ -106,7 +109,7 @@ class NoteService():
 
             print("=" * width + "\n")
 
-    def add_snippet(self, session, content: str, display: bool=False) -> Optional[Snippet]:
+    def snippet_add(self, session, content: str, display: bool=False) -> Optional[Snippet]:
         """Adds a snippet to a note and DB and extracts tags/entities."""
 
         # Extract tags, entities, and URLs
@@ -151,6 +154,32 @@ class NoteService():
 
         return snippet
 
+    def snippet_delete(self, session: Session, snippet_idx: int):
+        if snippet_idx < 0 or snippet_idx > (len(self.snippets)-1):
+            print_err(f"❌ Invalid snippet number: {snippet_idx}")
+            return False
+
+        # Get the snippet to delete
+        snippet = self.snippets[snippet_idx]
+        
+        # Delete from database
+        SnippetCRUD.delete(session, snippet.id)
+        
+        # Remove from local list
+        self.snippets.pop(snippet_idx)
+        
+        # Reorder remaining snippets
+        for i, s in enumerate(self.snippets):
+            if s.position != i:
+                s.position = i
+                SnippetCRUD.update(session, s.id, position=i)
+        
+        # Clear and redisplay the note
+        # clear_terminal()
+        # self.display(footer=False)
+        
+        return True
+        
     def interactive_create(self, session):
         """Interactive input for note creation or update."""
 
@@ -161,6 +190,9 @@ class NoteService():
             sys.exit(0)
 
         signal.signal(signal.SIGQUIT, handle_exit)
+
+        # Create a prompt session with history
+        prompt_session = PromptSession(history=InMemoryHistory())
 
         # Loop to accept multiple snippets from the user
         marked_for_reinput = False # Flag to reinput the current snippet
@@ -173,137 +205,84 @@ class NoteService():
                 continue
 
             # --- Check for special commands --- # TODO let the user know about those special commands
+
+            # --- Exit ---
             if content in ["/exit", "/quit", "/q"]:
-                # --- Exit ---
                 handle_exit(None, None)
-            # if content.startswith("/delete ") or content.startswith("/d ") or content.startswith("/del "):
-            #     # --- Delete snippet ---
-            #     snippet_ord = int(content.split()[1])
-            #     self.handle_snippet_delete(snippet_ord=snippet_ord, db=db)
-            #     # Reinput the current snippet and exit the current loop
-            #     marked_for_reinput = True
-            #     break
-            if content.startswith("/archive"):
+            # --- Delete snippet ---
+            elif content.startswith("/delete ") or content.startswith("/d ") or content.startswith("/del "):
+                # --- Delete snippet ---
+                try:
+                    snippet_ord = int(content.split()[1])
+                except (ValueError, IndexError):
+                    print_err(f"❌ Invalid snippet number: {content.split()[1]}")
+                    continue
+                # Try to delete the snippet
+                is_deleted = self.snippet_delete(session, snippet_ord)
+                if is_deleted:
+                    # Reinput the current snippet and exit the current loop
+                    marked_for_reinput = True
+                    break
+                else:
+                    # If deletion failed, continue the loop
+                    continue
+            # --- Archive note ---
+            elif content.startswith("/archive"):
                 NoteCRUD.archive(session, self.id)
                 break
-            # if content.startswith("/edit") or content.startswith("/e"):
-            #     # --- Edit snippet ---
-            #     snippet_ord = int(content.split()[1])
-            #     snippet = self.snippets[snippet_ord-1]
-            #     # Use `prompt` with a default value
-            #     snippet.content = prompt(f"[{snippet_ord}] (edit): ", default=snippet.content)
-            #     snippet.persist(note_id=self.id, db=db)
-            #     marked_for_reinput = True
-            #     break
-            # if content == "/title":
-            #     # --- Edit title ---
-            #     self.title = prompt("Title (edit): ", default=self.title)
-            #     self.persist(db=db)
-            #     marked_for_reinput = True
-            #     break
+            # --- Edit snippet ---
+            elif content.startswith("/edit") or content.startswith("/e"):
+                # --- Edit snippet ---
+                snippet_ord = int(content.split()[1])
+                if snippet_ord < 0 or snippet_ord > (len(self.snippets)-1):
+                    print_err(f"❌ Invalid snippet number: {snippet_ord}")
+                    continue
+                # Get the snippet to edit
+                snippet = self.snippets[snippet_ord]
+
+                # Use prompt_toolkit to edit with the original content pre-filled
+                new_content = prompt_session.prompt(
+                    HTML(f"<ansicyan>[{snippet_ord}] (edit):</ansicyan> "),
+                    default=snippet.content
+                )
+
+                # Update and overwrite
+                snippet = SnippetCRUD.update(session, snippet.id, content=new_content)
+                # Update the local snippet list
+                self.snippets[snippet_ord] = snippet
+                marked_for_reinput = True
+                break
+            # --- Edit title ---
+            elif content.startswith("/title"):
+                if len(content.split(" ", 1)) < 2:
+                    print_err(f"❌ No title provided. Use /title <new_title>")
+                    continue
+                title = ' '.join(content.split(" ", 1)[1:]).strip()
+                # update the note title
+                self.note.title = title
+                NoteCRUD.update(session, self.id, title=title)
+                marked_for_reinput = True
+                break
             # if content.startswith("/time"):
             #     # --- Add time ---
             #     literal = " ".join(content.split(" ", 1)[1:])
             #     self.add_time(literal, db=db)
             #     marked_for_reinput = True
             #     break
-            self.add_snippet(session, content, display=True)
+            # --- Print / commands ---
+            elif content.startswith("/help") or content.strip() in ["/?","/h"]:
+                print_sys(f"Available commands:")
+                print_sys(f"  /exit, /quit, /q: Exit the note editor")
+                print_sys(f"  /archive: Archive the note")
+                print_sys(f"  /delete, /d, /del <snippet_ord>: Delete a snippet")
+                print_sys(f"  /edit <snippet_ord>: Edit a snippet")
+                print_sys(f"  /title: Edit the note title")
+                print_sys(f"  /time <literal>: Add a time to the note")
+                print_sys(f"  /help, /?, /h: Show this help message")
+            else:
+                self.snippet_add(session, content, display=True)
 
         if marked_for_reinput:
             clear_terminal()
             self.display(footer=False)
             self.interactive_create(session)
-            
-# class NoteService:
-#     @staticmethod
-#     def create_note(
-#         session: Session,
-#         workspace_id: str,
-#         title: Optional[str],
-#         snippet_contents: List[str],
-#         tags: Optional[Set[str]] = None,
-#         entities: Optional[Set[str]] = None,
-#         times: Optional[List[tuple]] = None
-#     ) -> Note:
-#         note = Note(
-#             id=str(uuid4()),
-#             workspace_id=workspace_id,
-#             title=title,
-#             archived=False,
-#             created_at=datetime.utcnow(),
-#             updated_at=datetime.utcnow()
-#         )
-
-#         if tags:
-#             for tag_name in tags:
-#                 tag = session.get(Tag, tag_name) or Tag(name=tag_name)
-#                 note.tags.append(tag)
-
-#         if entities:
-#             for entity_name in entities:
-#                 entity = session.get(Entity, entity_name) or Entity(name=entity_name)
-#                 note.entities.append(entity)
-
-#         if times:
-#             for literal, scope in times:
-#                 time_expr = TimeExpr(
-#                     value=f"{literal}-{scope}", literal=literal, scope=scope
-#                 )
-#                 note.time_exprs.append(time_expr)
-
-#         session.add(note)
-#         session.flush()
-
-#         for i, content in enumerate(snippet_contents):
-#             snippet = Snippet(
-#                 id=str(uuid4()),
-#                 note_id=note.id,
-#                 content=content,
-#                 position=i,
-#                 created_at=datetime.utcnow(),
-#                 updated_at=datetime.utcnow()
-#             )
-#             note.snippets.append(snippet)
-
-#         session.commit()
-#         return note
-
-#     @staticmethod
-#     def add_snippet(
-#         session: Session,
-#         note_id: str,
-#         content: str,
-#         position: Optional[int] = None,
-#         tags: Optional[Set[str]] = None,
-#         entities: Optional[Set[str]] = None,
-#         times: Optional[List[tuple]] = None
-#     ) -> Snippet:
-#         snippet = Snippet(
-#             id=str(uuid4()),
-#             note_id=note_id,
-#             content=content,
-#             position=position,
-#             created_at=datetime.utcnow(),
-#             updated_at=datetime.utcnow()
-#         )
-
-#         if tags:
-#             for tag_name in tags:
-#                 tag = session.get(Tag, tag_name) or Tag(name=tag_name)
-#                 snippet.tags.append(tag)
-
-#         if entities:
-#             for entity_name in entities:
-#                 entity = session.get(Entity, entity_name) or Entity(name=entity_name)
-#                 snippet.entities.append(entity)
-
-#         if times:
-#             for literal, scope in times:
-#                 time_expr = TimeExpr(
-#                     value=f"{literal}-{scope}", literal=literal, scope=scope
-#                 )
-#                 snippet.time_exprs.append(time_expr)
-
-#         session.add(snippet)
-#         session.commit()
-#         return snippet
