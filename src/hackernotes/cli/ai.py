@@ -1,31 +1,66 @@
 import click
 
+from hackernotes.core.ai import extract_tags_from_text
+from hackernotes.db import SessionLocal
+from hackernotes.db.query import NoteCRUD
+from hackernotes.utils.term import print_warn
+
 from . import hn
 
 # === AI/LLM Commands ===
 @hn.group()
-def llm():
-    """LLM operations and task management."""
+def ai():
+    """AI intelligence operations."""
     pass
 
-@llm.command()
+@ai.command()
 def queue():
+    """List all queued tasks."""
     pass
 
-@llm.command()
-def run():
+@ai.command()
+def dequeue():
+    """Dequeue a task. Or all tasks if no task is specified."""
     pass
 
-@llm.command()
+@ai.command()
+@click.argument('note_id')
+@click.option('--interactive', '-i', is_flag=True, help="Run in interactive mode. Agree to LLM intelligence.")
+@click.option('--tags', '-t', is_flag=True, help="Highlight or add tags to the note.")
+@click.option('--entities', '-e', is_flag=True, help="Highlight or add entities to the note.")
+def run(note_id, interactive, tags, entities):
+    """Run an AI-magick task on a note."""
+    if not note_id:
+        print_warn("Note ID is required.")
+        return
+    if not tags and not entities:
+        print_warn("At least one of --tags or --entities must be specified.")
+        return
+    
+    with SessionLocal() as session:
+        note = NoteCRUD.get(session, note_id)
+    note_body = note.title + "\n\n" + '\n'.join([snippet.content for snippet in note.snippets])
+
+    if tags: # TODO
+        tag_set = extract_tags_from_text(note_body)
+        print("Tags:",tag_set)
+    
+    if interactive:
+        # Placeholder for interactive mode logic
+        print("Running in interactive mode... Agree or edit before applying")
+
+    return
+
+@ai.command()
 @click.argument('type')
 def prompt(type):
     pass
 
-@llm.command()
+@ai.command()
 def chat():
     pass
 
-@llm.command()
+@ai.command()
 @click.argument('note_id')
 def generate(note_id):
     pass
