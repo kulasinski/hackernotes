@@ -38,6 +38,9 @@ poetry install
 # run CLI
 poetry run hn
 
+# or for dev
+poetry env activate
+
 # initialize DB
 hn db init 
 

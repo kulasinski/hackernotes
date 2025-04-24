@@ -46,6 +46,9 @@ def clear_terminal_line():
 def clear_terminal():
     print("\033c")
 
+def cursor_up():
+    sys.stdout.write("\033[F\033[K")
+
 def print_sys(text: str):
     """
     Print system message to the system console.

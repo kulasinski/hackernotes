@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from ..db.query import NoteCRUD, SnippetCRUD
 from ..db.models import Note, Snippet, Tag, Entity, TimeExpr
-from ..utils.term import clear_terminal, clear_terminal_line, fentity, fsys, ftag, print_err, print_sys
+from ..utils.term import clear_terminal, clear_terminal_line, cursor_up, fentity, fsys, ftag, print_err, print_sys
 from ..utils.datetime import dateFormat
 
 class NoteService():
@@ -144,7 +144,8 @@ class NoteService():
         self.snippets.append(snippet)
 
         if display:
-            clear_terminal_line()
+            # clear_terminal_line()
+            cursor_up()
             NoteService.displaySnippet(snippet)
             # snippet.display(ord=len(self.snippets)+1)
 
@@ -165,7 +166,7 @@ class NoteService():
         marked_for_reinput = False # Flag to reinput the current snippet
         while True:
             try:
-                content = click.prompt(fsys("> "), prompt_suffix="")
+                content = click.prompt(fsys(">>>"), prompt_suffix="")
             except click.Abort:
                 handle_exit(None, None)
             if not content.strip():
