@@ -13,6 +13,8 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.formatted_text import HTML
 
+from hackernotes.core.annotations import extract_tags_and_entities
+
 from ..db.query import NoteCRUD, SnippetCRUD
 from ..db.models import Note, Snippet, Tag, Entity, TimeExpr
 from ..utils.term import clear_terminal, clear_terminal_line, cursor_up, fentity, fsys, ftag, print_err, print_sys
@@ -113,7 +115,7 @@ class NoteService():
         """Adds a snippet to a note and DB and extracts tags/entities."""
 
         # Extract tags, entities, and URLs
-        tags, entities = {}, {} # extract_tags_and_entities(content) # TODO
+        tags, entities = extract_tags_and_entities(content) # TODO
         times = [] # TODO
         # urls = extract_urls(content) # TODO ???
 
