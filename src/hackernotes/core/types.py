@@ -1,5 +1,7 @@
 from enum import Enum
 
+from pydantic import BaseModel
+
 class HackerEnum(Enum):
     """
     Base class for all enums in the HackerNotes project.
@@ -40,3 +42,45 @@ class TaskStatus(HackerEnum):
     RUNNING = "RUNNING"
     SUCCESS = "SUCCESS"
     FAILED = "FAILED"
+
+class EntityType(HackerEnum):
+    PERSON = "PERSON"
+    ORGANIZATION = "ORGANIZATION"
+    LOCATION = "LOCATION"
+    DATE = "DATE"
+    TIME = "TIME"
+    MONEY = "MONEY"
+    PERCENTAGE = "PERCENTAGE"
+    EMAIL = "EMAIL"
+    URL = "URL"
+    PHONE_NUMBER = "PHONE_NUMBER"
+
+class Entity(BaseModel):
+    """
+    Represents an entity extracted from a note.
+    """
+    value: str
+    type: EntityType
+
+class ExtractedEntities(BaseModel):
+    """
+    Represents a collection of extracted entities.
+    """
+    entities: list[Entity]
+
+class TimeIntelligence(BaseModel):
+    """
+    Represents time intelligence extracted from a note.
+    - literal: The literal representation of the time intelligence in the note, e.g. "next week".
+    - value: The actual value of the time intelligence, e.g. "2023-10-15".
+    - scope: The time scope of the intelligence, e.g. "WEEK", "DAY", etc.
+    """
+    literal: str
+    value: str
+    scope: TimeScope
+
+class ExtractedTimeIntelligence(BaseModel):
+    """
+    Represents a collection of extracted time intelligence.
+    """
+    time_intelligence: list[TimeIntelligence]
