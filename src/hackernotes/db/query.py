@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, text
 from tabulate import tabulate
 
+from hackernotes.core.types import TimeIntelligence, EntityIntelligence
+from hackernotes.utils.parsers import tags2line
+
 from .models import Entity, Note, Snippet, Tag, TimeExpr, User, Workspace
 from ..utils.config import config
 from ..utils.term import fwarn, print_sys, print_warn
@@ -282,8 +285,9 @@ class NoteCRUD:
         note_id: str,
         title: Optional[str] = None,
         snippets: Optional[List[dict]] = None,
-        tags: Optional[List[str]] = None,
-        entities: Optional[List[str]] = None,
+        tags: Optional[Set[str]] = None,
+        entities: Optional[List[EntityIntelligence]] = None,
+        times: Optional[List[TimeIntelligence]] = None,
     ) -> Note:
         
         note = cls.get(session, note_id)
@@ -303,18 +307,74 @@ class NoteCRUD:
         #             **snippet_kwargs
         #         )
 
-        # if tags:
-        #     for tag_name in tags:
-        #         tag = session.get(Tag, tag_name) or Tag(name=tag_name)
-        #         note.tags.append(tag)
+        if tags or entities or times:
+            # TODO
+            # 1. get all snippets content
+            # 2. iterate over them and add tags (prepend #) where necessary
+            # 3. create a new snippet with the remaining tags
+
+            # iterate over all snippets
+            all_existing_tags = set()
+            for snippet in note.snippets:
+                # get content
+                content = snippet.content
+                # get tags
+                snippet_tags = {tag.name for tag in snippet.tags}
+                all_existing_tags = all_existing_tags.union(snippet_tags)
+                # iterate over tags
+
+                added_tags = set()
+                for tag in tags:
+                    # if the snippet does not have the tag yet and the tag is in the content, add it to the snippet
+                    if tag not in snippet_tags and tag in content:
+                        # add tag to snippet
+                        content = content.replace(tag, f"#{tag}")
+                        added_tags.add(tag)
+
+                SnippetCRUD.update(
+                        session,
+                        snippet.id,
+                        content=content,
+                        tags=None if not added_tags else snippet_tags.union(added_tags), # add the new tags to the existing ones only if they are not None
+                )
+                # TODO entities
+                # TODO times
+
+                # TODO check if tags, entities or times are already present in the snippet
+                # if not, add them to the snippet
+            if tags:
+                # add the remaining tags to the note
+                remaining_tags = tags.difference(all_existing_tags)
+                print(f"creating new snippet with tags: {remaining_tags}")
+                # create a new snippet with the remaining tags
+                content = f"Tag Intelligence: {tags2line(remaining_tags)}"
+                SnippetCRUD.create(
+                    session,
+                    note_id=note.id,
+                    content=content,
+                    position=len(note.snippets),
+                    tags=set(remaining_tags),
+                )
+
+
+            # wrong
+            # content = f"Tag Intelligence: {', '.join(['#' + tag for tag in tags])}"
+            # SnippetCRUD.create(
+            #     session,
+            #     note_id=note.id,
+            #     content=content,
+            #     position=len(note.snippets),
+            #     tags=set(tags),
+            # )
 
         # if entities:
         #     for entity_name in entities:
         #         entity = session.get(Entity, entity_name) or Entity(name=entity_name)
         #         note.entities.append(entity)
 
-        session.commit()
-        return note
+        # session.commit()
+        # print_sys(f"Note {note_id} updated.")
+        # return note
     
 class SnippetCRUD:
     @classmethod

@@ -1,24 +1,27 @@
-from typing import List
+from typing import List, Set
 
 from ollama import chat
 
 from hackernotes.utils.datetime import now
 
-from ..core.types import Entity, EntityType, ExtractedEntities, ExtractedTimeIntelligence, TimeIntelligence, TimeScope
+from ..core.types import EntityIntelligence, EntityType, ExtractedEntities, ExtractedTimeIntelligence, TimeIntelligence, TimeScope
 
-def extract_tags_from_text(text: str) -> set:
+def extract_tags_from_text(text: str) -> Set[str]:
     """Extracts tags from text."""
     
     sys_prompt = """
     You will be given a piece of text that is a note written by the user.
     Your task is to figure out which tags might be a good fit for the note.
-    Warning: if the note contains any word preceded by either '#', '@', or '^', you should ignore it.
+    Warning: if the note contains any word preceded by either '#', '@', or '^', you MUST ignore it.
 
     Form your response as a JSON array of strings.
     For example, if the note contains the text "I love Python coding", your response should be:
     {
         "tags": ["Python", "coding", #programming"]
     }
+
+    Note: if something already IS an entity (preceded by @) or a tag (preceded by #), DO NOT include it in the response.
+    Note: persons, organizations, and locations are NOT tags but entities, do not include them in the response.
     """
 
     response = ollama_generate(
@@ -33,7 +36,7 @@ def extract_tags_from_text(text: str) -> set:
     else:
         raise ValueError("Invalid response format from Ollama API: {}".format(response))
     
-def extract_entities_from_text(text: str) -> List[Entity]:
+def extract_entities_from_text(text: str) -> List[EntityIntelligence]:
     """Extracts entities from text."""
     
     sys_prompt = """

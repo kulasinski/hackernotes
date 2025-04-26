@@ -55,7 +55,7 @@ class EntityType(HackerEnum):
     URL = "URL"
     PHONE_NUMBER = "PHONE_NUMBER"
 
-class Entity(BaseModel):
+class EntityIntelligence(BaseModel):
     """
     Represents an entity extracted from a note.
     """
@@ -66,7 +66,7 @@ class ExtractedEntities(BaseModel):
     """
     Represents a collection of extracted entities.
     """
-    entities: list[Entity]
+    entities: list[EntityIntelligence]
 
 class TimeIntelligence(BaseModel):
     """
