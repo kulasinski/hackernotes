@@ -8,6 +8,7 @@ from typing import Optional, List, Set
 
 import click
 from colorama import Fore, Style
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
@@ -16,14 +17,17 @@ from prompt_toolkit.formatted_text import HTML
 from hackernotes.core.annotations import extract_tags_and_entities
 
 from ..db.query import NoteCRUD, SnippetCRUD
-from ..db.models import Note, Snippet, Tag, Entity, TimeExpr
+from ..db.models import Note, Snippet as SnippetDB, Tag, Entity, TimeExpr
 from ..utils.term import clear_terminal, clear_terminal_line, cursor_up, fentity, fsys, ftag, print_err, print_sys
 from ..utils.datetime import dateFormat
+
+from .snippet import Snippet
+from .annotations import Annotations
 
 class NoteService():
     def __init__(self, note: Note):
         self.note = note
-        self.snippets: List[Snippet] = sorted(note.snippets, key=lambda x: x.position)
+        self.snippets: List[SnippetDB] = sorted(note.snippets, key=lambda x: x.position)
 
     @property
     def id(self) -> str:
@@ -68,7 +72,7 @@ class NoteService():
         return self.note.updated_at
     
     @staticmethod
-    def displaySnippet(snippet: Snippet):
+    def displaySnippet(snippet: SnippetDB):
         snippet_content = snippet.content
         # Highlight tags and entities
         for tag in snippet.tags:
@@ -111,7 +115,7 @@ class NoteService():
 
             print("=" * width + "\n")
 
-    def snippet_add(self, session, content: str, display: bool=False) -> Optional[Snippet]:
+    def snippet_add(self, session, content: str, display: bool=False) -> Optional[SnippetDB]:
         """Adds a snippet to a note and DB and extracts tags/entities."""
 
         # Extract tags, entities, and URLs
@@ -288,3 +292,17 @@ class NoteService():
             clear_terminal()
             self.display(footer=False)
             self.interactive_create(session)
+
+class NoteMeta(BaseModel):
+    """Note metadata model."""
+    id: str = uuid4().hex
+    title: str = "Untitled"
+    created_at: datetime = datetime.now()
+    updated_at: datetime = datetime.now()
+    archived: bool = False
+
+class Note(BaseModel):
+    """Note model."""
+    meta: NoteMeta = NoteMeta()
+    snippets: List[Snippet] = []
+    annotations: Annotations = Annotations()

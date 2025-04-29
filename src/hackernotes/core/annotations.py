@@ -1,6 +1,8 @@
 from datetime import datetime
 import re
-from typing import List, Tuple
+from typing import List, Set, Tuple
+
+from pydantic import BaseModel
 
 # Regex for extracting tags (#tag) and entities (@entity)
 TAG_PATTERN = r"#([\w-]+|\"[^\"]+\")"
@@ -25,3 +27,10 @@ def containsTagsOnly(text: str):
         if not token.startswith("#"):
             return False
     return True
+
+class Annotations(BaseModel):
+    """Note annotations model."""
+    tags: Set[str] = set()
+    entities: Set[str] = set()
+    times: Set[str] = set()
+    urls: Set[str] = set()

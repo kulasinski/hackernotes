@@ -6,6 +6,7 @@ from ..utils.term import print_sys
 
 CONFIG_DIR = os.path.expanduser("~/.hackernotes")
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
+WORKSPACES_DIR = os.path.join(CONFIG_DIR, "ws")
 
 config = {}
 
