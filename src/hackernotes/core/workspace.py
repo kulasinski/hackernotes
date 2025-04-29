@@ -7,8 +7,8 @@ from pydantic import BaseModel, field_validator
 import toml
 
 from ..utils.system import path_contains_dir, HACKERNOTES_HEADER
-from ..utils.term import print_err, print_sys
-from ..utils.config import WORKSPACES_DIR
+from ..utils.term import fsys, print_err, print_sys, print_warn
+from ..utils.config import WORKSPACES_DIR, config, update_config
 
 class Workspace(BaseModel):
     """
@@ -72,9 +72,10 @@ class Workspace(BaseModel):
         return cls(name=name, description=description)
     
     @classmethod
-    def get(cls, name: str) -> "Workspace":
+    def get(cls, name: str = config.get("active_workspace")) -> "Workspace":
         """
         Gets a workspace by name.
+        Defaults to the active workspace.
         """
         if not cls.exists(name):
             print_err(f"Workspace '{name}' does not exist.")
@@ -109,6 +110,31 @@ class Workspace(BaseModel):
         return os.path.exists(os.path.join(WORKSPACES_DIR, name))
     
     @classmethod
+    def use(cls, name: str) -> "Workspace":
+        """
+        Uses a workspace by name.
+        Checks if the workspace exists, updated the config's default, returns the workspace instance.
+        """
+        ws = cls.get(name)
+        if ws is None:
+            return None
+        else:
+            # Update the config's default/active workspace
+            update_config(active_workspace=name)
+            print_sys(f"[+] Now using workspace '{name}'")
+
+        return ws
+    
+    @classmethod
+    def list(cls) -> list[str]:
+        """
+        Lists all workspaces.
+        """
+        # List all directories in the workspaces directory
+        workspaces = [d for d in os.listdir(WORKSPACES_DIR) if os.path.isdir(os.path.join(WORKSPACES_DIR, d))]
+        return workspaces
+    
+    @classmethod
     def get_or_create(cls, name: str, description: str = "") -> "Workspace":
         """
         Gets a workspace by name or creates it if it doesn't exist.
@@ -128,13 +154,17 @@ class Workspace(BaseModel):
         """
         Removes the workspace.
         """
+        # Prevent removal if the workspace is active
+        if self.name == config.get("active_workspace"):
+            print_err(f"Cannot remove the active workspace '{self.name}'. Please switch to another workspace first.")
+            return
         if confirm:
             # Add a confirmation prompt
-            confirm = input(f"Are you sure you want to delete the workspace at {self.base_dir}? (y/n): ")
+            confirm = input(fsys("Are you sure you want to delete the workspace '{self.name}' at {self.base_dir}? (y/n): "))
             if confirm.lower() != 'y':
                 print_err("Operation cancelled.")
                 return
 
         # Remove the workspace directory
         shutil.rmtree(self.base_dir)
-        print_sys(f"[+] Removed workspace '{self.name}' at {self.base_dir}")
+        print_warn(f"[+] Removed workspace '{self.name}' at {self.base_dir}")

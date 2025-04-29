@@ -46,4 +46,4 @@ def update_config(**kwargs):
     config.update(kwargs)
     with open(CONFIG_PATH, "w") as f:
         toml.dump(config, f)
-    print_sys(f"[+] Updated config file at with new values: {kwargs}")
+    # print_sys(f"[+] Updated config file at with new values: {kwargs}")
