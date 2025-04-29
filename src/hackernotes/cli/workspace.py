@@ -49,6 +49,20 @@ def list():
 
 @ws.command()
 @click.argument('name')
+@click.option('--description', '-d', default=None, help='New description of the workspace')
+@click.option('--new-name', '-n', default=None, help='New name for the workspace')
+def update(name, description, new_name):
+    """
+    Update a workspace's name or description.
+    """
+    ws = Workspace.get(name)
+    if ws is None:
+        return
+    
+    ws.update(description=description, name=new_name)
+
+@ws.command()
+@click.argument('name')
 def remove(name):
     """
     Remove a workspace by name.

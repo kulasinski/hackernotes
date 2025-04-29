@@ -168,3 +168,20 @@ class Workspace(BaseModel):
         # Remove the workspace directory
         shutil.rmtree(self.base_dir)
         print_warn(f"[+] Removed workspace '{self.name}' at {self.base_dir}")
+
+    def update(self, name: str = None, description: str = None):
+        """
+        Updates the workspace.
+        """
+        if name:
+            # Rename the workspace directory
+            new_base_dir = os.path.join(WORKSPACES_DIR, name)
+            os.rename(self.base_dir, new_base_dir)
+            # Update the base_dir property
+            self.name = name
+        if description:
+            self.description = description
+
+        # Save the workspace file
+        self.save()
+        print_sys(f"[+] Updated workspace '{self.name}' at {self.base_dir}")
