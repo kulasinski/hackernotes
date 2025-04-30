@@ -54,35 +54,53 @@ class Note(BaseModel):
         data += self.__get_filler__("END OF HACKERNOTE")
         return data
     
+
+    def parse_hackernote_sections(text):
+        import re
+        """Parse the sections of a hackernote."""
+        sections = {}
+        
+        # Find all matches for section headers and their positions
+        matches = list(re.finditer(r"^=+\s*(.*?)\s*=+$", text, re.MULTILINE))
+        
+        for i in range(len(matches)):
+            title = matches[i].group(1).strip().upper()
+            start = matches[i].end()
+            end = matches[i+1].start() if i + 1 < len(matches) else len(text)
+            content = text[start:end].strip()
+            sections[title] = content
+
+        return sections
+    
     @classmethod
     def loads(cls, content: str) -> "Note":
         """Deserialize the note from a string."""
-        # Use regex to split the content into sections
-        import re
-        sections_divider_start = "=" * 10
-        sections_divider_end = "=" * 10
-        sections = re.split(rf"{sections_divider_start} (.*?) {sections_divider_end}", content) # TODO
-        # Remove empty sections
-        sections = [section.strip() for section in sections if section.strip()]
-        # Check if the sections are valid
-        if len(sections) != 5:
-            for section in sections:
-                print("SECTION")
-                print(section)
-            raise ValueError("Invalid note format.")
-        # Extract the sections
-        metadata_section = sections[1]
-        snippets_section = sections[3]
-        annotations_section = sections[4]
+        # # Use regex to split the content into sections
+        # import re
+        # sections_divider_start = "=" * 10
+        # sections_divider_end = "=" * 10
+        # sections = re.split(rf"{sections_divider_start} (.*?) {sections_divider_end}", content) # TODO
+        # # Remove empty sections
+        # sections = [section.strip() for section in sections if section.strip()]
+        # # Check if the sections are valid
+        # if len(sections) != 5:
+        #     raise ValueError("Invalid note format.")
+        # # Extract the sections
+        # metadata_section = sections[1]
+        # snippets_section = sections[3]
+        # annotations_section = sections[4]
+        # Parse the sections
+        sections = cls.parse_hackernote_sections(content)
         # Deserialize the sections
-        meta = NoteMeta.loads(metadata_section)
-        snippets = Snippets.loads(snippets_section)
-        annotations = Annotations.loads(annotations_section)
+        meta = NoteMeta.loads(sections["HACKERNOTE METADATA"])
+        snippets = Snippets.loads(sections["SNIPPETS"])
+        annotations = Annotations.loads(sections["ANNOTATIONS"])
         # Create the note object
         note = Note(meta=meta, snippets=snippets, annotations=annotations)
         return note
     
     # --- File Operations ---
+
     def persist(self):
         """Persists the note to a file."""
         with open(self.file_path, "w") as f:

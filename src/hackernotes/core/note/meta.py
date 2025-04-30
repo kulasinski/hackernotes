@@ -24,11 +24,11 @@ class NoteMeta(BaseModel):
     # --- Serialization Methods ---
     def dumps(self) -> str:
         """Serialize the note metadata to a string."""
-        data = f"[ID]: {self.id}\n"
-        data += f"[TITLE]: {self.title}\n"
-        data += f"[CREATED_AT]: {dt_dumps(self.created_at)}\n"
-        data += f"[UPDATED_AT]: {dt_dumps(self.updated_at)}\n"
-        data += f"[ARCHIVED]: {self.archived}\n"
+        data = f"[ID] {self.id}\n"
+        data += f"[TITLE] {self.title}\n"
+        data += f"[CREATED_AT] {dt_dumps(self.created_at)}\n"
+        data += f"[UPDATED_AT] {dt_dumps(self.updated_at)}\n"
+        data += f"[ARCHIVED] {self.archived}\n"
         return data
     
     @classmethod
@@ -39,21 +39,21 @@ class NoteMeta(BaseModel):
         data = {}
         for line in lines:
             # use regex
-            match = re.match(r"\[(.*?)\]: (.*)", line)
+            match = re.match(r"\[(.*?)\] (.*)", line)
             if not match:
                 continue
             key, value = match.groups()
             key = key.strip()
             value = value.strip()
-            if key == "[ID]":
+            if key == "ID":
                 data["id"] = value
-            elif key == "[TITLE]":
+            elif key == "TITLE":
                 data["title"] = value
-            elif key == "[CREATED_AT]":
+            elif key == "CREATED_AT":
                 data["created_at"] = dt_loads(value)
-            elif key == "[UPDATED_AT]":
+            elif key == "UPDATED_AT":
                 data["updated_at"] = dt_loads(value)
-            elif key == "[ARCHIVED]":
+            elif key == "ARCHIVED":
                 data["archived"] = value.lower() == "true"
             else:
                 raise ValueError(f"Unknown key: {key}")

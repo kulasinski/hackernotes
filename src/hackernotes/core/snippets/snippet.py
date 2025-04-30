@@ -15,5 +15,5 @@ class Snippet(BaseModel):
     @classmethod
     def loads(cls, content: str) -> "Snippet":
         """Deserialize the snippet from a string."""
-        annotations = None # TODO
+        annotations = Annotations() # TODO
         return Snippet(content=content.strip(), annotations=annotations)
