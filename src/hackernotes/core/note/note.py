@@ -3,6 +3,7 @@
 from datetime import datetime
 import signal
 import sys
+import os
 from uuid import uuid4
 from typing import Optional, List, Set
 
@@ -14,15 +15,8 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.formatted_text import HTML
 
-from hackernotes.core.annotations import extract_tags_and_entities
-
-from ..db.query import NoteCRUD, SnippetCRUD
-from ..db.models import Note, Snippet as SnippetDB, Tag, Entity, TimeExpr
-from ..utils.term import clear_terminal, clear_terminal_line, cursor_up, fentity, fsys, ftag, print_err, print_sys
-from ..utils.datetime import dateFormat
-
-from .snippet import Snippet
-from .annotations import Annotations
+# this module is deprecated
+raise ImportError("This module is deprecated. Use the new note system.")
 
 class NoteService():
     def __init__(self, note: Note):
@@ -293,16 +287,4 @@ class NoteService():
             self.display(footer=False)
             self.interactive_create(session)
 
-class NoteMeta(BaseModel):
-    """Note metadata model."""
-    id: str = uuid4().hex
-    title: str = "Untitled"
-    created_at: datetime = datetime.now()
-    updated_at: datetime = datetime.now()
-    archived: bool = False
 
-class Note(BaseModel):
-    """Note model."""
-    meta: NoteMeta = NoteMeta()
-    snippets: List[Snippet] = []
-    annotations: Annotations = Annotations()

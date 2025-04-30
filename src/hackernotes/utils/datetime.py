@@ -9,3 +9,11 @@ def now(descriptive: bool = False) -> str:
         return datetime.now().strftime("%A, %d %B %Y, %I:%M:%S %p")
     else:
         return datetime.now().strftime(dateFormat)
+    
+def dt_dumps(dt: datetime) -> str:
+    """Serialize a datetime object to a string."""
+    return dt.strftime(dateFormat)
+
+def dt_loads(dt_str: str) -> datetime:
+    """Deserialize a string to a datetime object."""
+    return datetime.strptime(dt_str, dateFormat)

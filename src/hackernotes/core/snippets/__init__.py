@@ -1,12 +1,8 @@
-
-
 from pydantic import BaseModel
 
-from .annotations import Annotations
+from hackernotes.core.annotations import Annotations
 
-class Snippet(BaseModel):
-    content: str
-    annotations: Annotations = Annotations()
+from .snippet import Snippet
 
 class Snippets(BaseModel):
     """
@@ -56,8 +52,43 @@ class Snippets(BaseModel):
     
     # --- Logical Methods ---
 
+    def add(self, content: str) -> Snippet:
+        """Adds a new snippet to the collection."""
+        annotations = Annotations() # TODO
+        snippet = Snippet(content=content, annotations=annotations)
+        self[self.length] = snippet
+        return snippet
+
     def reindex(self):
         """Re-indexes the snippets."""
         self.__snippets__ = {i: self.__snippets__[i] for i in range(len(self.__snippets__))}
+
+    # --- Serialization Methods ---
+
+    def dumps(self) -> dict:
+        """Serializes the snippets to a string."""
+        return "\n\n".join(
+            f"[{ord}] {snippet.dumps()}" for ord, snippet in self.__snippets__.items()
+        )+"\n\n"
+    
+    @classmethod
+    def loads(cls, data: str) -> "Snippets":
+        """Deserializes the snippets from a string."""
+        import re
+        snippets = Snippets()
+        lines = data.split("\n\n")
+        for line in lines:
+            if line.strip():
+                # use regex to extract the [d+] first occurrence
+                match = re.match(r"\[(\d+)\]\s*(.*)", line)
+                if not match:
+                    raise ValueError(f"Invalid snippet format: {line}")
+                ord = match.group(1)
+                content = match.group(2)
+                snippet = Snippet.loads(content)
+                snippets[int(ord)] = snippet
+
+        return snippets
+        
 
     
