@@ -1,3 +1,4 @@
+from typing import Set
 from pydantic import BaseModel
 
 from hackernotes.core.annotations import Annotations
@@ -16,6 +17,14 @@ class Snippets(BaseModel):
     def length(self):
         """Returns the number of snippets."""
         return len(self.__snippets__)
+    
+    @property
+    def tags(self) -> Set[str]:
+        """Returns the tags of the snippets."""
+        tags = set()
+        for snippet in self.__snippets__.values():
+            tags.update(snippet.annotations.tags)
+        return tags
     
     # --- Overridden Methods ---
 
@@ -54,7 +63,7 @@ class Snippets(BaseModel):
 
     def add(self, content: str) -> Snippet:
         """Adds a new snippet to the collection."""
-        annotations = Annotations() # TODO
+        annotations = Annotations.extract(content)
         snippet = Snippet(content=content, annotations=annotations)
         self[self.length] = snippet
         return snippet
@@ -72,7 +81,7 @@ class Snippets(BaseModel):
         )+"\n\n"
     
     @classmethod
-    def loads(cls, data: str) -> "Snippets":
+    def loads(cls, data: str, ext_annotations: Annotations = None) -> "Snippets":
         """Deserializes the snippets from a string."""
         import re
         snippets = Snippets()
@@ -85,7 +94,7 @@ class Snippets(BaseModel):
                     raise ValueError(f"Invalid snippet format: {line}")
                 ord = match.group(1)
                 content = match.group(2)
-                snippet = Snippet.loads(content)
+                snippet = Snippet.loads(content, ext_annotations=ext_annotations)
                 snippets[int(ord)] = snippet
 
         return snippets

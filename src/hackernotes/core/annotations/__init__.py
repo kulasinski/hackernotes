@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from .tag import Tag
 
 # Regex for extracting tags (#tag) and entities (@entity)
-TAG_PATTERN = r"#([\w-]+|\"[^\"]+\")"
+
 KEYWORD_PATTERN = r"@([\w-]+|\"[^\"]+\")"
 URL_PATTERN = r'(https?://\S+|www\.\S+|\S+\.\S+)'
 
@@ -37,6 +37,18 @@ class Annotations(BaseModel):
     # times: Set[Time] = set()
     # urls: Set[URL] = set()
 
+    # --- Logical Methods ---
+    @classmethod
+    def extract(cls, content: str) -> "Annotations":
+        """Extract tags and entities from the content."""
+        return cls(
+            tags=Tag.extract(content),
+            # TODO etc.
+            # entities=cls.extract_entities(content),
+            # times=cls.extract_times(content),
+            # urls=cls.extract_urls(content)
+        )
+
     # --- Tags Methods ---
     def add_tag(self, content: str) -> None:
         """Add a tag to the annotations."""
@@ -52,7 +64,7 @@ class Annotations(BaseModel):
     
     def dumps(self) -> str:
         """Serialize the annotations to a string."""
-        tags_serialized = ' #'.join([tag.dumps() for tag in self.tags]).strip()
+        tags_serialized = ' '.join([tag.dumps() for tag in self.tags]).strip()
         data = f"[TAGS] {tags_serialized}\n"
         # etc. data += f"[ENTITY] {entity..}\n"
         return data

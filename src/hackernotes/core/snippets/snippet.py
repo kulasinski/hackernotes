@@ -13,7 +13,11 @@ class Snippet(BaseModel):
         return self.content.strip() 
     
     @classmethod
-    def loads(cls, content: str) -> "Snippet":
+    def loads(cls, content: str, ext_annotations: Annotations = None) -> "Snippet":
         """Deserialize the snippet from a string."""
-        annotations = Annotations() # TODO
+        annotations = Annotations()
+        if ext_annotations:
+            # Filter the annotations to only include those that are in the snippet
+            annotations.tags = {tag for tag in ext_annotations.tags if tag.occurs(content)}
+            # TODO etc.
         return Snippet(content=content.strip(), annotations=annotations)

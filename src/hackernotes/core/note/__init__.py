@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 import os
 
-from hackernotes.utils.term import print_err
+from hackernotes.utils.term import fsys, print_err, print_warn
 
 from .meta import NoteMeta
 from ..workspace import Workspace
@@ -25,13 +25,40 @@ class Note(BaseModel):
     def file_path(self) -> str:
         """Returns the file path of the note using the metadata id."""
         return self.__get_path__(self.meta.id)
+    
+    # --- Note Methods ---
 
     def add(self, content: str):
         """Adds a snippet to the note."""
         self.snippets.add(content)
         self.meta.touch()
+        self.update_annotations()
+
+    def update_annotations(self):
+        """Updates the annotations of the note: collect all the snippets' annotations."""
+        self.annotations = Annotations(
+            tags=self.snippets.tags,
+            # TODO entities=self.snippets.entities, etc
+        )
+
+    def remove(self, confirm: bool = True):
+        """Removes the note from the workspace."""
+        if confirm:
+            # Ask for confirmation
+            confirm = input(fsys(f"Are you sure you want to remove the note {self.meta.id}? (y/n) "))
+            if confirm.lower() != "y":
+                print_err("Note removal cancelled.")
+                return
+        # Remove the note file
+        try:
+            os.remove(self.file_path)
+        except FileNotFoundError:
+            print_err(f"Note with id {self.meta.id} not found in the current workspace.")
+            return
+        print_warn(f"Note {self.meta.id} removed.")
 
     # --- Serialization Methods ---
+
     def __get_filler__(self, title: str) -> str:
         """Returns a filler string for the given title."""
         fill_width = 80
@@ -40,6 +67,9 @@ class Note(BaseModel):
 
     def dumps(self) -> str:
         """Serialize the note to a string."""
+        # Make sure to update the annotations before dumping the note
+        self.update_annotations()
+        # Create the data string
         data = ""
         # Dump metadata 
         data += self.__get_filler__("HACKERNOTE METADATA")
@@ -53,7 +83,6 @@ class Note(BaseModel):
         # Dump closing line
         data += self.__get_filler__("END OF HACKERNOTE")
         return data
-    
 
     def parse_hackernote_sections(text):
         import re
@@ -75,26 +104,12 @@ class Note(BaseModel):
     @classmethod
     def loads(cls, content: str) -> "Note":
         """Deserialize the note from a string."""
-        # # Use regex to split the content into sections
-        # import re
-        # sections_divider_start = "=" * 10
-        # sections_divider_end = "=" * 10
-        # sections = re.split(rf"{sections_divider_start} (.*?) {sections_divider_end}", content) # TODO
-        # # Remove empty sections
-        # sections = [section.strip() for section in sections if section.strip()]
-        # # Check if the sections are valid
-        # if len(sections) != 5:
-        #     raise ValueError("Invalid note format.")
-        # # Extract the sections
-        # metadata_section = sections[1]
-        # snippets_section = sections[3]
-        # annotations_section = sections[4]
         # Parse the sections
         sections = cls.parse_hackernote_sections(content)
         # Deserialize the sections
         meta = NoteMeta.loads(sections["HACKERNOTE METADATA"])
-        snippets = Snippets.loads(sections["SNIPPETS"])
         annotations = Annotations.loads(sections["ANNOTATIONS"])
+        snippets = Snippets.loads(sections["SNIPPETS"], ext_annotations=annotations)
         # Create the note object
         note = Note(meta=meta, snippets=snippets, annotations=annotations)
         return note

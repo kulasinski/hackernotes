@@ -2,7 +2,7 @@
 
 import signal
 import sys
-from hackernotes.core.note import NoteService
+# from hackernotes.core.note import NoteService
 from hackernotes.db.models import Note
 from hackernotes.db.query import NoteCRUD, WorkspaceCRUD
 from hackernotes.utils.term import clear_terminal, print_sys, print_warn

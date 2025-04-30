@@ -6,7 +6,7 @@ from tabulate import tabulate
 
 from . import hn, preflight
 from ..core.interactive import handle_create_note, handle_edit_note
-from ..core.note import NoteService
+# from ..core.note import NoteService
 from ..db import SessionLocal
 from ..db.query import NoteCRUD
 from ..utils.datetime import now

@@ -130,6 +130,10 @@ class Workspace(BaseModel):
         """
         Lists all workspaces.
         """
+        # Check if workspaces directory exists
+        if not os.path.exists(WORKSPACES_DIR):
+            print_err(f"Workspaces directory '{WORKSPACES_DIR}' does not exist. Create some workspace first.")
+            return []
         # List all directories in the workspaces directory
         workspaces = [d for d in os.listdir(WORKSPACES_DIR) if os.path.isdir(os.path.join(WORKSPACES_DIR, d))]
         return workspaces
