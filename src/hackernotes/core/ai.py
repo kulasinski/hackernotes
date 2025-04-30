@@ -42,12 +42,13 @@ def extract_entities_from_text(text: str) -> List[EntityIntelligence]:
     sys_prompt = """
     You will be given a piece of text that is a note written by the user.
     Your task is to figure out which entities might be a good fit for the note.
-    Warning: if the note contains any word preceded by either '#', '@', or '^', you should ignore it.
+    Warning: if the note contains any word preceded by either '#', or '^', you should ignore it.
 
     Your task is to extract entities from the text, if any. 
     Each entity must be of the following types: {}
 
     Structure your response as a JSON object.
+    Note: when using an entity already preceded by '@', do not use the '@' in the response.
     """\
     .format(EntityType.to_str)
 

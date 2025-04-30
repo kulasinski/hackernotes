@@ -6,7 +6,7 @@ from prompt_toolkit.formatted_text import HTML
 from hackernotes.core.ai import extract_entities_from_text, extract_tags_from_text, extract_time_intelligence_from_text
 from hackernotes.db import SessionLocal
 from hackernotes.db.query import NoteCRUD
-from hackernotes.utils.parsers import line2tags, tags2line
+from hackernotes.utils.parsers import entities2line, line2entities, line2tags, tags2line
 from hackernotes.utils.term import fsys, ftag, print_warn
 
 from . import hn
@@ -66,13 +66,20 @@ def run(note_id, interactive, tags, entities, times):
         if interactive:
             # Tags
             prompt_session = PromptSession(history=InMemoryHistory())
-            tags_interactive = prompt_session.prompt(
-                    HTML(f"<ansicyan>Tags (edit):</ansicyan> "),
-                    default=tags2line(tag_set),
-            )
-            tag_set = line2tags(tags_interactive)
+            if tag_set:
+                tags_interactive = prompt_session.prompt(
+                        HTML(f"<ansicyan>Tags (edit):</ansicyan> "),
+                        default=tags2line(tag_set),
+                )
+                tag_set = line2tags(tags_interactive)
             # Entities
-            # TODO
+            if entity_intelligence:
+                entities_interactive = prompt_session.prompt(
+                        HTML(f"<ansicyan>Entities (edit):</ansicyan> "),
+                        default=entities2line(entity_intelligence),
+                )
+                entity_intelligence = line2entities(entities_interactive)
+                print(entity_intelligence)
             # Time intelligence
             # TODO 
 
@@ -81,7 +88,8 @@ def run(note_id, interactive, tags, entities, times):
             if tag_set:
                 print(fsys("Tags:"), ftag(tags2line(tag_set), decorator=""))
             # Entities
-            # TODO
+            if entity_intelligence:
+                print(fsys("Entities:"), ftag(entities2line(entity_intelligence), decorator=""))
             # Time intelligence
             # TODO 
 

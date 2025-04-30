@@ -315,27 +315,42 @@ class NoteCRUD:
 
             # iterate over all snippets
             all_existing_tags = set()
+            all_existing_entities = set()
             for snippet in note.snippets:
                 # get content
                 content = snippet.content
+                original_content = content
+                # --- TAGS ---
                 # get tags
                 snippet_tags = {tag.name for tag in snippet.tags}
                 all_existing_tags = all_existing_tags.union(snippet_tags)
                 # iterate over tags
-
                 added_tags = set()
-                for tag in tags:
-                    # if the snippet does not have the tag yet and the tag is in the content, add it to the snippet
-                    if tag not in snippet_tags and tag in content:
-                        # add tag to snippet
-                        content = content.replace(tag, f"#{tag}")
-                        added_tags.add(tag)
+                if tags:
+                    for tag in tags:
+                        # if the snippet does not have the tag yet and the tag is in the content, add it to the snippet
+                        if tag not in snippet_tags and tag in content:
+                            # add tag to snippet
+                            content = content.replace(tag, f"#{tag}")
+                            added_tags.add(tag)
+                # --- ENTITIES ---
+                snippet_entities = {EntityIntelligence(value=e.name, type=e.entity_type) for e in snippet.entities}
+                all_existing_entities = all_existing_entities.union(snippet_entities)
+                # iterate over entities
+                if entities:
+                    for entity in entities:
+                        # if the snippet does not have the entity yet and the entity is in the content, add it to the snippet
+                        if entity not in snippet_entities and entity.value in content:
+                            # add entity to snippet
+                            content = content.replace(entity.value, f"@{entity.value}:{entity.type.name}")
+                            added_tags.add(entity.value)
 
                 SnippetCRUD.update(
                         session,
                         snippet.id,
                         content=content,
                         tags=None if not added_tags else snippet_tags.union(added_tags), # add the new tags to the existing ones only if they are not None
+                        entities=None if not added_tags else snippet_entities.union(added_tags), # add the new entities to the existing ones only if they are not None
                 )
                 # TODO entities
                 # TODO times
@@ -351,7 +366,7 @@ class NoteCRUD:
                 SnippetCRUD.create(
                     session,
                     note_id=note.id,
-                    content=content,
+                    content=content if original_content!=content else None, # only add the content if it is different from the original
                     position=len(note.snippets),
                     tags=set(remaining_tags),
                 )
@@ -442,6 +457,11 @@ class SnippetCRUD:
         entities: Optional[Set[str]] = None,
         times: Optional[List[dict]] = None,
     ) -> Snippet:
+        if not any([content, position, tags, entities, times]):
+            print_warn("No fields to update. Please provide at least one field.")
+            return None
+        print(f"Updating snippet {snippet_id} with content: {content}, position: {position}, tags: {tags}, entities: {entities}, times: {times}")
+        return
         
         snippet = session.get(Snippet, snippet_id)
         if not snippet:

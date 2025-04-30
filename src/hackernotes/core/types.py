@@ -47,13 +47,6 @@ class EntityType(HackerEnum):
     PERSON = "PERSON"
     ORGANIZATION = "ORGANIZATION"
     LOCATION = "LOCATION"
-    DATE = "DATE"
-    TIME = "TIME"
-    MONEY = "MONEY"
-    PERCENTAGE = "PERCENTAGE"
-    EMAIL = "EMAIL"
-    URL = "URL"
-    PHONE_NUMBER = "PHONE_NUMBER"
 
 class EntityIntelligence(BaseModel):
     """
@@ -61,6 +54,10 @@ class EntityIntelligence(BaseModel):
     """
     value: str
     type: EntityType
+
+    # define hash
+    def __hash__(self):
+        return hash((self.value, self.type))
 
 class ExtractedEntities(BaseModel):
     """
