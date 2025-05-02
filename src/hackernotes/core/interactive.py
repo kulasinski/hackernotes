@@ -19,6 +19,7 @@ def interactive_create(note: Note):
         note.persist()
         # note.to_queue() # TODO
         print_sys(fsys("[+] Note ")+note.meta.title+fsys(" saved and added to the queue."))
+        note.index(note.meta.id)
         sys.exit(0)
 
     signal.signal(signal.SIGQUIT, handle_exit)
@@ -158,6 +159,7 @@ def handle_create_note(title: str):
         else:
             note.persist()
             print_sys("Note saved.")
+            note.index(note.meta.id)
         sys.exit(0)
     
     signal.signal(signal.SIGINT, handle_interrupt)

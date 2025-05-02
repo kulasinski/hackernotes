@@ -175,7 +175,7 @@ class Note(BaseModel):
         print_sys(f"[+] Indexed note '{note.meta.title}' with ID '{note.meta.id}' in workspace '{ws.name}'")
 
     @classmethod
-    def index_all(cls):
+    def index_all(cls, index_fn: str = "__index__.tsv"):
         """
         Indexes all notes in the workspace.
         """
@@ -184,5 +184,9 @@ class Note(BaseModel):
         if not note_ids:
             print_warn("No notes found in the workspace.")
             return
+        # Remove the index file if it exists
+        index_full_path = os.path.join(ws.base_dir, index_fn)
+        if os.path.exists(index_full_path):
+            os.remove(index_full_path)
         for note_id in note_ids:
             cls.index(note_id)
