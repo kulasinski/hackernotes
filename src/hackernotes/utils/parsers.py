@@ -1,30 +1,31 @@
 
 # --- TAG PARSING ---
 
-from typing import List
+from typing import List, Set
 
+from hackernotes.core.annotations.tag import Tag
 from hackernotes.core.types import EntityIntelligence, EntityType
 from hackernotes.utils.term import print_err
 
 
-def line2tags(text: str) -> set:
+def line2tags(text: str) -> Set[Tag]:
     """
     Convert a line of text into a set of tags. Assume the text is space-delimited and each tag starts by hash '#'.
     """
     # Split the text by commas and strip whitespace
-    tags = {tag.strip() for tag in text.split('#') if tag.strip()}
+    tags = {Tag(content=content.strip()) for content in text.split('#') if content.strip()}
     
     # Remove empty tags
     tags.discard('')
     
     return tags
 
-def tags2line(tags: set) -> str:
+def tags2line(tags: Set[Tag]) -> str:
     """
     Convert a set of tags into a line of text. Each tag is separated by a space and starts with a hash '#'.
     """
     # Join the tags with commas and add a hash at the beginning of each tag
-    return ' '.join(f'#{tag}' for tag in tags)
+    return ' '.join([tag.dumps() for tag in tags])
 
 # --- ENTITY PARSING ---
 

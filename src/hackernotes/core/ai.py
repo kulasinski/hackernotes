@@ -1,12 +1,12 @@
 from typing import List, Set
 
-from ollama import chat
-
-from hackernotes.utils.datetime import now
+from ..core.annotations.tag import Tag
+from ..utils.datetime import now
+from ..utils.llm import ollama_generate
 
 from ..core.types import EntityIntelligence, EntityType, ExtractedEntities, ExtractedTimeIntelligence, TimeIntelligence, TimeScope
 
-def extract_tags_from_text(text: str) -> Set[str]:
+def extract_tags_from_text(text: str) -> Set[Tag]:
     """Extracts tags from text."""
     
     sys_prompt = """
@@ -32,7 +32,7 @@ def extract_tags_from_text(text: str) -> Set[str]:
     resp_eval = eval(response)
 
     if isinstance(resp_eval, dict) and "tags" in resp_eval:
-        return set(resp_eval["tags"])
+        return set(Tag(content=tag) for tag in resp_eval["tags"])
     else:
         raise ValueError("Invalid response format from Ollama API: {}".format(response))
     
@@ -110,21 +110,3 @@ def extract_time_intelligence_from_text(text: str) -> List[TimeIntelligence]:
             raise ValueError("Invalid response format from Ollama API: {}".format(response))
     else:
         raise ValueError("Invalid response format from Ollama API: {}".format(response))
-
-def ollama_generate(sys_prompt: str, user_prompt: str, model_name: str = "llama3.2:latest", format: dict = None) -> str:
-    """Generates a response using the Ollama API."""
-    response = chat(
-        messages=[
-            {
-                'role': 'system',
-                'content': sys_prompt,
-            },
-            {
-                'role': 'user',
-                'content': user_prompt,
-            }
-        ],
-        model=model_name,
-        format=format,
-    )
-    return response.message.content

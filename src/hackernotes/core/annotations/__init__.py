@@ -50,9 +50,12 @@ class Annotations(BaseModel):
         )
 
     # --- Tags Methods ---
-    def add_tag(self, content: str) -> None:
+    def add_tag(self, content: str|Tag) -> None:
         """Add a tag to the annotations."""
-        self.tags.add(Tag(content=content))
+        if isinstance(content, str):
+            self.tags.add(Tag(content=content))
+        elif isinstance(content, Tag):
+            self.tags.add(content)
 
     def has_tag(self, content: str) -> bool:
         """Check if the annotations contain a tag."""

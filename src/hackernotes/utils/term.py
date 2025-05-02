@@ -40,8 +40,16 @@ def ftag(content: str, decorator: str = "#"):
 #         content = content.replace(url, f"{Fore.LIGHTBLACK_EX}{url}{Style.RESET_ALL}")
 #     return content
 
+# def clear_terminal_line():
+#     print("\n\033[A                             \033[A")
+
 def clear_terminal_line():
-    print("\n\033[A                             \033[A")
+    """Clear the current terminal line."""
+    print("\r\033[K", end="")  # \r moves to start of line, \033[K clears to end of line
+
+def clear_previous_line():
+    """Clear the previous terminal line."""
+    print("\033[F\033[K", end="")  # \033[F moves up one line, \033[K clears to end of line
 
 def clear_terminal():
     print("\033c")

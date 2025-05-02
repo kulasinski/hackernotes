@@ -129,4 +129,5 @@ class Note(BaseModel):
                 content = f.read()
         except FileNotFoundError:
             print_err(f"Note with id {id} not found in the current workspace.")
+            return None
         return cls.loads(content)

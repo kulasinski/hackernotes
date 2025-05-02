@@ -29,10 +29,10 @@ def interactive_create(note: Note):
     # Loop to accept multiple snippets from the user
     marked_for_reinput = False # Flag to reinput the current snippet
     while True:
-        # try:
-        content = prompt_session.prompt(ANSI(fsys(">>> ")))
-        # except KeyboardInterrupt:
-        #     handle_exit(None, None)
+        try:
+            content = prompt_session.prompt(ANSI(fsys(">>> ")))
+        except EOFError:
+            handle_exit(None, None)
         if not content.strip():
             continue
 
@@ -136,22 +136,16 @@ def handle_create_note(title: str):
     # Get current workspace
     # ws = WorkspaceCRUD.get_current(session)
 
-    # Start...
-    clear_terminal()
-    print_sys(f"New note: {title}")
-    print_sys("Enter snippets one by one. (Ctrl+D to save note, Ctrl+C to discard note):")
-    # note = NoteCRUD.create(
-    #     session, 
-    #     ws.id,
-    #     title=title,
-    #     snippets=[],
-    # )
-
     note = Note(
         meta=NoteMeta(
             title=title,
         )
     )
+
+    clear_terminal()
+    print_sys(f"New note: {title}")
+    print_sys(f"ID: {note.meta.id}")
+    print_sys("Enter snippets one by one. (Ctrl+D to save note, Ctrl+C to discard note):")
 
     # Define signal handlers
     def handle_interrupt(sig, frame):
@@ -183,7 +177,7 @@ def handle_edit_note(session, note_id: str, width: int = 50):
     """
 
     # Get note from database
-    note = NoteCRUD.get(session, note_id=note_id)
+    note = Note.read(note_id)
     if not note:
         print_warn(f"Note with ID {note_id} not found.")
         return
@@ -192,10 +186,9 @@ def handle_edit_note(session, note_id: str, width: int = 50):
     print_sys("Enter snippets one by one. (Ctrl+D to save note):")
 
     # Display the current note's state
-    ns = NoteService(note)
-    ns.display(width=width, footer=False)
+    display_note(note, width=width, footer=False)
 
     # Edit interactively
-    ns.interactive_create(session)
+    interactive_create(note)
     
     

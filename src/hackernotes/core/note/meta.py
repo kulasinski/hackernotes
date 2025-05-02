@@ -1,12 +1,12 @@
 from datetime import datetime
-from uuid import uuid4
+import shortuuid
 from pydantic import BaseModel
 
 from ...utils.datetime import dt_dumps, dt_loads
 
 class NoteMeta(BaseModel):
     """Note metadata model."""
-    id: str = uuid4().hex
+    id: str = shortuuid.ShortUUID().random(length=8)
     title: str = "Untitled"
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()

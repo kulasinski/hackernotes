@@ -74,7 +74,7 @@ def archive(note_id):
 @click.argument('note_id')
 def remove(note_id):
     """Permanently removes a note."""
-    Note.remove(note_id)
+    Note.read(note_id).remove()
 
 @note.command()
 @click.argument('note_id')
