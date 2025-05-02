@@ -65,7 +65,7 @@ class Annotations(BaseModel):
 
     # --- Serialization Methods ---
     
-    def dumps(self) -> str:
+    def dumps(self, prefix=False) -> str:
         """Serialize the annotations to a string."""
         tags_serialized = ' '.join([tag.dumps() for tag in self.tags]).strip()
         data = f"[TAGS] {tags_serialized}\n"

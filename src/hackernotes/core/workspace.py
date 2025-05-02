@@ -6,6 +6,7 @@ from typing import List
 
 from pydantic import BaseModel, field_validator
 import toml
+import pandas as pd
 
 from ..utils.system import path_contains_dir, HACKERNOTES_HEADER
 from ..utils.term import fsys, print_err, print_sys, print_warn
@@ -146,7 +147,8 @@ class Workspace(BaseModel):
         """
         return cls.get(name) or cls.create(name, description)
     
-    def list_notes(self, note_suffix: str = ".hnote") -> List[str]: # TODO this shouldn't be hardcoded, also return more than just names...
+    def list_notes(self, note_suffix: str = ".hnote", index_fn = "__index__.tsv") -> List[str]: 
+        # TODO this shouldn't be hardcoded
         """
         Lists all notes in the workspace.
         """
@@ -204,3 +206,10 @@ class Workspace(BaseModel):
         # Save the workspace file
         self.save()
         print_sys(f"[+] Updated workspace '{self.name}' at {self.base_dir}")
+
+    def get_index(self, index_fn = "__index__.tsv") -> pd.DataFrame:
+        """
+        Returns the content of the index file.
+        """
+        df = pd.read_csv(os.path.join(self.base_dir, index_fn), sep="\t")
+        return df

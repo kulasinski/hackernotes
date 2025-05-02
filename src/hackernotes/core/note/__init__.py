@@ -1,7 +1,10 @@
+import pandas as pd
 from pydantic import BaseModel
 import os
 
-from hackernotes.utils.term import fsys, print_err, print_warn
+from hackernotes.utils.datetime import dt_dumps
+from hackernotes.utils.parsers import tags2line
+from hackernotes.utils.term import fsys, print_err, print_sys, print_warn
 
 from .meta import NoteMeta
 from ..workspace import Workspace
@@ -131,3 +134,55 @@ class Note(BaseModel):
             print_err(f"Note with id {id} not found in the current workspace.")
             return None
         return cls.loads(content)
+    
+    # --- Indexing Methods ---
+
+    @classmethod
+    def index(cls, note_id: str, index_fn: str = "__index__.tsv", ws: Workspace = None):
+        """
+        Indexes a note by ID. If no ID is provided, index all notes in the workspace.
+        """
+        if not ws:
+            ws = Workspace.get()
+        index_full_path = os.path.join(ws.base_dir, index_fn)
+
+        # Check if the note exists
+        note = Note.read(note_id)
+
+        # Open or create the index file
+        try:
+            df = pd.read_csv(index_full_path, sep="\t")
+            df.set_index("ID", inplace=True)
+        except FileNotFoundError:
+            df = pd.DataFrame(columns=["ID", "Created At", "Updated At", "Title", "Tags", "Entities", "Times"])
+            # make ID the index
+            df.set_index("ID", inplace=True)
+
+        print(df)
+
+        # Create or update the note entry
+        df.loc[note.meta.id] = [
+            dt_dumps(note.meta.created_at),
+            dt_dumps(note.meta.updated_at),
+            note.meta.title,
+            tags2line(note.annotations.tags),
+            "TODO", # note.annotations.entities,
+            "TODO", # note.annotations.times
+        ]
+
+        # Save the index file
+        df.to_csv(index_full_path, sep="\t", index=True)
+        print_sys(f"[+] Indexed note '{note.meta.title}' with ID '{note.meta.id}' in workspace '{ws.name}'")
+
+    @classmethod
+    def index_all(cls):
+        """
+        Indexes all notes in the workspace.
+        """
+        ws = Workspace.get()
+        note_ids = ws.list_notes()
+        if not note_ids:
+            print_warn("No notes found in the workspace.")
+            return
+        for note_id in note_ids:
+            cls.index(note_id)

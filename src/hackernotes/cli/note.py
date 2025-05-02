@@ -96,24 +96,45 @@ def list(*args, **kwargs):
     ws = Workspace.get()
 
     # Read note files # TODO return more than just names...
-    notes = ws.list_notes()
+    # notes = ws.list_notes()
 
-    if not notes:
-        print_warn("No notes found.")
+    # if not notes:
+    #     print_warn("No notes found.")
+    #     return
+    
+    try:
+        index_df = ws.get_index()
+    except FileNotFoundError:
+        print_warn("Index file not found.")
         return
     
-    headers = [fsys("ID"), fsys("Title"), fsys("Snippets"), fsys("Created At"), fsys("Tags"), fsys("Entities"), fsys("Times")]
-    table = [
-        [
-            fsys(note), # ID... TODO
-            "", #note.title,
-            "", #note.size,
-            "", #note.getCreatedAt(),
-            "", #", ".join([ftag(tag) for tag in note.tags]),
-            "", #", ".join([fentity(entity) for entity in note.entities]),
-            "", # ", ".join([f"{t.literal}" for t in note.timesAll])
-        ]
-        for note in notes
-    ]
+    print(tabulate(index_df, headers='keys', tablefmt='psql'))
+    
+    # headers = [fsys("ID"), fsys("Title"), fsys("Snippets"), fsys("Created At"), fsys("Tags"), fsys("Entities"), fsys("Times")]
+    # table = [
+    #     [
+    #         fsys(note), # ID... TODO
+    #         "", #note.title,
+    #         "", #note.size,
+    #         "", #note.getCreatedAt(),
+    #         "", #", ".join([ftag(tag) for tag in note.tags]),
+    #         "", #", ".join([fentity(entity) for entity in note.entities]),
+    #         "", # ", ".join([f"{t.literal}" for t in note.timesAll])
+    #     ]
+    #     for note in notes
+    # ]
+    # table = [
+    #     [
+    #         fsys(note_id),
+    #         note["Title"],
+    #         note["Snippets"],
+    #         note["Created At"],
+    #         ", ".join([ftag(tag) for tag in note["Tags"]]),
+    #         ", ".join([fentity(entity) for entity in note["Entities"]]),
+    #         ", ".join([f"{t.literal}" for t in note["Times"]])
+    #     ]
+    #     for note_id, note in index_df.iterrows()
+    # ]
 
-    click.echo(tabulate(table, headers=headers, tablefmt="simple_outline"))
+
+    # click.echo(tabulate(table, headers=headers, tablefmt="simple_outline"))
