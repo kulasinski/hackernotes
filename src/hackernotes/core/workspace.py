@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 import shutil
 import json
+from typing import List
 
 from pydantic import BaseModel, field_validator
 import toml
@@ -144,6 +145,20 @@ class Workspace(BaseModel):
         Gets a workspace by name or creates it if it doesn't exist.
         """
         return cls.get(name) or cls.create(name, description)
+    
+    def list_notes(self, note_suffix: str = ".hnote") -> List[str]: # TODO this shouldn't be hardcoded, also return more than just names...
+        """
+        Lists all notes in the workspace.
+        """
+        # Check if the workspace directory exists
+        if not os.path.exists(self.base_dir):
+            print_err(f"Workspace '{self.name}' does not exist.")
+            return []
+        
+        # List all files in the workspace directory, a note ends with suffix
+        note_names = [f[:-len(note_suffix)] for f in os.listdir(self.base_dir)
+                      if os.path.isfile(os.path.join(self.base_dir, f)) and f.endswith(note_suffix)]
+        return note_names
     
     def save(self):
         """

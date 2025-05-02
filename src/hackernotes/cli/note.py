@@ -4,6 +4,7 @@ import click
 from tabulate import tabulate
 
 from hackernotes.core.note import Note
+from hackernotes.core.workspace import Workspace
 from hackernotes.utils.display import display_note
 
 
@@ -65,21 +66,21 @@ def edit(note_id, width):
 @click.argument('note_id')
 def archive(note_id):
     """Archive (soft delete) a note."""
-    with SessionLocal() as session:
-        NoteCRUD.archive(note_id)
+    note = Note.read(note_id)
+    note.meta.archive()
+    note.persist()
 
 @note.command()
 @click.argument('note_id')
-def delete(note_id):
-    """Permanently delete a note."""
-    with SessionLocal() as session:
-        NoteCRUD.delete(session, note_id, confirm=True)
+def remove(note_id):
+    """Permanently removes a note."""
+    Note.remove(note_id)
 
 @note.command()
 @click.argument('note_id')
 def export(note_id):
-    """Export note via LLM generate."""
-    pass
+    """Export note via LLM generate.""" # TODO makes sense?
+    print(Note.read(note_id).dumps())
 
 @note.command()
 @click.option('--tag', '-t', multiple=True, help="Filter by tags")
@@ -91,24 +92,26 @@ def export(note_id):
 def list(*args, **kwargs):
     """Lists notes based on provided filters (tags, entities, or content)."""
 
-    with SessionLocal() as session:
-        notes = [NoteService(n) for n in NoteCRUD.list_by_workspace(session, **kwargs)]
+    # Get the current workspace
+    ws = Workspace.get()
+
+    # Read note files # TODO return more than just names...
+    notes = ws.list_notes()
 
     if not notes:
-        click.echo(f"No notes found.")
+        print_warn("No notes found.")
         return
     
     headers = [fsys("ID"), fsys("Title"), fsys("Snippets"), fsys("Created At"), fsys("Tags"), fsys("Entities"), fsys("Times")]
     table = [
         [
-            fsys(note.id),
-            note.title,
-            note.size,
-            note.getCreatedAt(),
-            ", ".join([ftag(tag) for tag in note.tags]),
-            ", ".join([fentity(entity) for entity in note.entities]),
-            # ", ".join([f"{t.literal}" for t in note.timesAll])
-            "Times not implemented"
+            fsys(note), # ID... TODO
+            "", #note.title,
+            "", #note.size,
+            "", #note.getCreatedAt(),
+            "", #", ".join([ftag(tag) for tag in note.tags]),
+            "", #", ".join([fentity(entity) for entity in note.entities]),
+            "", # ", ".join([f"{t.literal}" for t in note.timesAll])
         ]
         for note in notes
     ]
