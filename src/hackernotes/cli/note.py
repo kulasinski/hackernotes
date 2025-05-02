@@ -3,6 +3,9 @@ from typing import List
 import click
 from tabulate import tabulate
 
+from hackernotes.core.note import Note
+from hackernotes.utils.display import display_note
+
 
 from . import hn, preflight
 from ..core.interactive import handle_create_note, handle_edit_note
@@ -16,14 +19,16 @@ from ..utils.term import clear_terminal, fentity, fsys, ftag, print_warn
 @hn.group()
 def note():
     """Note-related operations."""
-    preflight()
+    # preflight() # Uncomment if needed
+    pass
 
 @note.command()
 @click.argument('title', type=str, required=False, default=f'Untitled {now()}')
 def new(title: str):
     """Create new note with optional title."""
-    with SessionLocal() as session:
-        handle_create_note(session, title)
+    # with SessionLocal() as session:
+    #   handle_create_note(session, title)
+    handle_create_note(title)
 
 @note.command()
 @click.argument('note_id', required=False)
@@ -31,19 +36,21 @@ def new(title: str):
 @click.option("--width", type=int, default=50, help="Set the width for displaying the note")
 def show(note_id, title, width):
     """Show a note (last edited if none specified)."""
-    with SessionLocal() as session:
-        if note_id:
-            note = NoteCRUD.get(session, note_id=note_id)
-        elif title:
-            note = NoteCRUD.get(session, title=title)
-        else:
-            note = NoteCRUD.get(session)
-        if not note:
-            print_warn(f"No note found with ID: {note_id} or title: {title}")
-            return
+    # with SessionLocal() as session:
+    if note_id:
+        note = Note.read(note_id)
+    elif title:
+        # leverage workspace?
+        raise NotImplementedError("Fetching by title is not implemented yet.")
+    else:
+        # leverage workspace?
+        raise ValueError("Getting the last edited note is not implemented yet.")
+    if not note:
+        print_warn(f"No note found with ID: {note_id} or title: {title}")
+        return
         
     clear_terminal()
-    NoteService(note).display(width=width, footer=True)
+    display_note(note, width=width, footer=True)
 
 
 @note.command()

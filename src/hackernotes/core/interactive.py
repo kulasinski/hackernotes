@@ -1,12 +1,131 @@
-
-
 import signal
 import sys
-# from hackernotes.core.note import NoteService
-from hackernotes.db.models import Note
-from hackernotes.db.query import NoteCRUD, WorkspaceCRUD
-from hackernotes.utils.term import clear_terminal, print_sys, print_warn
 
+import click
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.formatted_text import HTML
+
+from hackernotes.utils.display import display_note, display_snippet
+
+from .note import Note, NoteMeta
+from ..utils.term import clear_terminal, clear_terminal_line, cursor_up, fsys, fwarn, print_err, print_sys, print_warn
+
+def interactive_create(note: Note):
+    """Interactive input for note creation or update."""
+
+    def handle_exit(sig, frame):
+        clear_terminal_line()
+        note.persist()
+        # note.to_queue() # TODO
+        print_sys(f"[+] Note {note.meta.title} saved and added to the queue.")
+        sys.exit(0)
+
+    signal.signal(signal.SIGQUIT, handle_exit)
+
+    # Create a prompt session with history
+    prompt_session = PromptSession(history=InMemoryHistory())
+
+    # Loop to accept multiple snippets from the user
+    marked_for_reinput = False # Flag to reinput the current snippet
+    while True:
+        try:
+            content = click.prompt(fsys(">>>"), prompt_suffix="")
+        except click.Abort:
+            handle_exit(None, None)
+        if not content.strip():
+            continue
+
+        # --- Check for special commands --- # TODO let the user know about those special commands
+
+        # --- Exit ---
+        if content in ["/exit", "/quit", "/q"]:
+            handle_exit(None, None)
+
+        # --- Delete snippet --- TODO
+        elif content.startswith("/delete ") or content.startswith("/d ") or content.startswith("/del "):
+            # --- Delete snippet ---
+            try:
+                snippet_ord = int(content.split()[1])
+            except (ValueError, IndexError):
+                print_err(f"❌ Invalid snippet number: {content.split()[1]}")
+                continue
+            # Try to delete the snippet
+            is_deleted = self.snippet_delete(session, snippet_ord)
+            if is_deleted:
+                # Reinput the current snippet and exit the current loop
+                marked_for_reinput = True
+                break
+            else:
+                # If deletion failed, continue the loop
+                continue
+
+        # --- Archive note ---
+        elif content.startswith("/archive"):
+            note.meta.archive()
+            break
+
+        # --- Edit snippet --- TODO
+        elif content.startswith("/edit") or content.startswith("/e"):
+            # --- Edit snippet ---
+            snippet_ord = int(content.split()[1])
+            if snippet_ord < 0 or snippet_ord > (len(self.snippets)-1):
+                print_err(f"❌ Invalid snippet number: {snippet_ord}")
+                continue
+            # Get the snippet to edit
+            snippet = self.snippets[snippet_ord]
+
+            # Use prompt_toolkit to edit with the original content pre-filled
+            new_content = prompt_session.prompt(
+                HTML(f"<ansicyan>[{snippet_ord}] (edit):</ansicyan> "),
+                default=snippet.content
+            )
+
+            # Update and overwrite
+            snippet = SnippetCRUD.update(session, snippet.id, content=new_content)
+            # Update the local snippet list
+            self.snippets[snippet_ord] = snippet
+            marked_for_reinput = True
+            break
+
+        # --- Edit title ---
+        elif content.startswith("/title"):
+            if len(content.split(" ", 1)) < 2:
+                print_err(f"❌ No title provided. Use /title <new_title>")
+                continue
+            title = ' '.join(content.split(" ", 1)[1:]).strip()
+            # update the note title
+            note.meta.title = title
+            marked_for_reinput = True
+            break
+
+        # --- Add time ---
+        # if content.startswith("/time"):
+        #     # --- Add time ---
+        #     literal = " ".join(content.split(" ", 1)[1:])
+        #     self.add_time(literal, db=db)
+        #     marked_for_reinput = True
+        #     break
+
+        # --- Print / commands ---
+        elif content.startswith("/help") or content.strip() in ["/?","/h"]:
+            print_sys(f"Available commands:")
+            print_sys(f"  /exit, /quit, /q: Exit the note editor")
+            print_sys(f"  /archive: Archive the note")
+            print_sys(f"  /delete, /d, /del <snippet_ord>: Delete a snippet")
+            print_sys(f"  /edit <snippet_ord>: Edit a snippet")
+            print_sys(f"  /title: Edit the note title")
+            print_sys(f"  /time <literal>: Add a time to the note")
+            print_sys(f"  /help, /?, /h: Show this help message")
+        else:
+            note.add(content)
+            cursor_up()
+            display_snippet(snippet)
+
+    if marked_for_reinput:
+        clear_terminal()
+        display_note(note, footer=False)
+        interactive_create(note)
 
 def handle_create_note(session, title: str):
     """
@@ -14,29 +133,42 @@ def handle_create_note(session, title: str):
     """
 
     # Get current workspace
-    ws = WorkspaceCRUD.get_current(session)
+    # ws = WorkspaceCRUD.get_current(session)
 
     # Start...
     clear_terminal()
     print_sys(f"New note: {title}")
     print_sys("Enter snippets one by one. (Ctrl+D to save note, Ctrl+C to discard note):")
-    note = NoteCRUD.create(
-        session, 
-        ws.id,
-        title=title,
-        snippets=[],
+    # note = NoteCRUD.create(
+    #     session, 
+    #     ws.id,
+    #     title=title,
+    #     snippets=[],
+    # )
+
+    note = Note(
+        meta=NoteMeta(
+            title=title,
+        )
     )
 
     # Define signal handlers
     def handle_interrupt(sig, frame):
-        print_warn("\nCancelling and deleting note...")
-        NoteCRUD.delete(session, note.id, confirm=False)  # Deleting the note on Ctrl+C
+        confirm = input(fwarn("Do you want to discard the note? (y/n): "))
+        if confirm.lower() == 'y':
+            print_sys("Note discarded.")
+            note.remove(confirm=False)
+        else:
+            note.persist()
+            print_sys("Note saved.")
         sys.exit(0)
     
     signal.signal(signal.SIGINT, handle_interrupt)
 
     # Create interactively
-    NoteService(note).interactive_create(session)
+    # NoteService(note).interactive_create(session)
+
+    interactive_create(note)
 
 def handle_edit_note(session, note_id: str, width: int = 50):
     """
