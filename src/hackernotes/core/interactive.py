@@ -4,7 +4,7 @@ import sys
 import click
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.formatted_text import ANSI, HTML
 
 from hackernotes.utils.display import display_note, display_snippet
 
@@ -18,7 +18,7 @@ def interactive_create(note: Note):
         clear_terminal_line()
         note.persist()
         # note.to_queue() # TODO
-        print_sys(f"[+] Note {note.meta.title} saved and added to the queue.")
+        print_sys(fsys("[+] Note ")+note.meta.title+fsys(" saved and added to the queue."))
         sys.exit(0)
 
     signal.signal(signal.SIGQUIT, handle_exit)
@@ -29,10 +29,10 @@ def interactive_create(note: Note):
     # Loop to accept multiple snippets from the user
     marked_for_reinput = False # Flag to reinput the current snippet
     while True:
-        try:
-            content = click.prompt(fsys(">>>"), prompt_suffix="")
-        except click.Abort:
-            handle_exit(None, None)
+        # try:
+        content = prompt_session.prompt(ANSI(fsys(">>> ")))
+        # except KeyboardInterrupt:
+        #     handle_exit(None, None)
         if not content.strip():
             continue
 
@@ -117,17 +117,18 @@ def interactive_create(note: Note):
             print_sys(f"  /title: Edit the note title")
             print_sys(f"  /time <literal>: Add a time to the note")
             print_sys(f"  /help, /?, /h: Show this help message")
+        
         else:
             note.add(content)
             cursor_up()
-            display_snippet(snippet)
+            display_snippet(note.snippets.length-1, note.snippets.last_snippet)
 
     if marked_for_reinput:
         clear_terminal()
         display_note(note, footer=False)
         interactive_create(note)
 
-def handle_create_note(session, title: str):
+def handle_create_note(title: str):
     """
     Handle the interactive creation of a new note.
     """
@@ -154,10 +155,12 @@ def handle_create_note(session, title: str):
 
     # Define signal handlers
     def handle_interrupt(sig, frame):
-        confirm = input(fwarn("Do you want to discard the note? (y/n): "))
+        confirm = ""
+        while confirm.lower() not in ['y', 'n']:
+            confirm = input(fwarn("Do you want to discard the note? (y/n): "))
         if confirm.lower() == 'y':
-            print_sys("Note discarded.")
-            note.remove(confirm=False)
+            print_warn("Note discarded.")
+            # note.remove(confirm=False) NOTE no need to remove the note as it is not persisted yet
         else:
             note.persist()
             print_sys("Note saved.")
@@ -168,7 +171,11 @@ def handle_create_note(session, title: str):
     # Create interactively
     # NoteService(note).interactive_create(session)
 
-    interactive_create(note)
+    try:
+        interactive_create(note)
+    except KeyboardInterrupt:
+        # Handle Ctrl+C
+        handle_interrupt(None, None)
 
 def handle_edit_note(session, note_id: str, width: int = 50):
     """

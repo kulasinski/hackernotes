@@ -26,6 +26,13 @@ class Snippets(BaseModel):
             tags.update(snippet.annotations.tags)
         return tags
     
+    @property
+    def last_snippet(self) -> Snippet:
+        """Returns the last snippet."""
+        if self.length == 0:
+            return None
+        return self.__snippets__[self.length - 1]
+    
     # --- Overridden Methods ---
 
     def __getitem__(self, key: int) -> Snippet:
