@@ -103,7 +103,7 @@ class Snippets(BaseModel):
 
     # --- Serialization Methods ---
 
-    def dumps(self) -> dict:
+    def dumps(self) -> str:
         """Serializes the snippets to a string."""
         return "\n\n".join(
             f"[{ord}] {snippet.dumps()}" for ord, snippet in self.__snippets__.items()

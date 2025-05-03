@@ -94,6 +94,10 @@ class Annotations(BaseModel):
             return ""
         return ' '.join([entity.dumps() for entity in self.entities]).strip()
     
+    @classmethod
+    def entities_deserialize(cls, content: str) -> Set[Entity]:
+        return {Entity.loads(entity) for entity in content.split("@") if entity.strip()}
+    
     # --- Serialization Methods ---
     
     def dumps(self, prefix=False) -> str:
@@ -120,6 +124,6 @@ class Annotations(BaseModel):
             # Load entities
             elif line.startswith("[ENTITIES]"):
                 entities_data = line[len("[ENTITIES]"):].strip()
-                entities = {Entity.loads(entity) for entity in entities_data.split("@") if entity.strip()}
+                entities = cls.entities_deserialize(entities_data)
         
         return cls(tags=tags, entities=entities)

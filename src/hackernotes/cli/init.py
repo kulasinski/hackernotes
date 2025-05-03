@@ -6,7 +6,6 @@ from hackernotes.core.types import TimeScope
 
 from . import hn
 from ..db import init_db, SessionLocal
-from ..db.query import NoteCRUD, UserCRUD, WorkspaceCRUD
 from ..utils.config import config, update_config, CONFIG_DIR #DB_PATH, ACTIVE_WORKSPACE, MODEL_BACKEND
 from ..utils.term import print_err, print_sys, input_sys
 

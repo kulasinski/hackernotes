@@ -1,5 +1,3 @@
-from typing import List
-
 import click
 from tabulate import tabulate
 
@@ -7,14 +5,12 @@ from hackernotes.core.note import Note
 from hackernotes.core.workspace import Workspace
 from hackernotes.utils.display import display_note
 
-
-from . import hn, preflight
+from . import hn
 from ..core.interactive import handle_create_note, handle_edit_note
 # from ..core.note import NoteService
 from ..db import SessionLocal
-from ..db.query import NoteCRUD
 from ..utils.datetime import now
-from ..utils.term import clear_terminal, fentity, fsys, ftag, print_warn
+from ..utils.term import clear_terminal, print_warn
 
 # === Note Commands ===
 @hn.group()

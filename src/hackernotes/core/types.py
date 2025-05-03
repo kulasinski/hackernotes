@@ -49,22 +49,16 @@ class EntityType(HackerEnum):
     ORGANIZATION = "ORGANIZATION"
     LOCATION = "LOCATION"
 
-class EntityIntelligence(BaseModel):
-    """
-    Represents an entity extracted from a note.
-    """
-    value: str
-    type: EntityType
+# class EntityIntelligence(BaseModel):
+#     """
+#     Represents an entity extracted from a note.
+#     """
+#     value: str
+#     type: EntityType
 
-    # define hash
-    def __hash__(self):
-        return hash((self.value, self.type))
-
-class ExtractedEntities(BaseModel):
-    """
-    Represents a collection of extracted entities.
-    """
-    entities: list[EntityIntelligence]
+#     # define hash
+#     def __hash__(self):
+#         return hash((self.value, self.type))
 
 class TimeIntelligence(BaseModel):
     """

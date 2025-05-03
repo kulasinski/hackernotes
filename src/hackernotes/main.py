@@ -3,7 +3,7 @@
 import sys
 import logging
 
-from .cli import db, hn  # entrypoint CLI group (Click)
+from .cli import hn  # entrypoint CLI group (Click)
 # register CLI commands
 from .cli import note, annotation, aliases, graph, workspace, ai, init
 

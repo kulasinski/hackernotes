@@ -3,12 +3,15 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.formatted_text import HTML
 
-from hackernotes.core.ai import extract_entities_from_text, extract_tags_from_text, extract_time_intelligence_from_text
+from hackernotes.core.ai import extract_annotations
+from hackernotes.core.annotations import Annotations
+from hackernotes.core.annotations.entity import Entity
 from hackernotes.core.note import Note
+from hackernotes.core.types import EntityType
 from hackernotes.db import SessionLocal
 # from hackernotes.db.query import NoteCRUD
-from hackernotes.utils.parsers import entities2line, line2entities, line2tags, tags2line
-from hackernotes.utils.term import clear_previous_line, clear_terminal_line, fsys, ftag, print_sys, print_warn
+from hackernotes.utils.parsers import line2tags, tags2line
+from hackernotes.utils.term import fsys, ftag, print_sys, print_warn
 
 from . import hn
 
@@ -48,82 +51,78 @@ def run(note_id, interactive, tags, entities, times):
     if not note:
         return
     
-    note_body = note.dumps() # note.title + "\n\n" + '\n'.join([snippet.content for snippet in note.snippets])
+    note_body = note.snippets.dumps() # TODO other way?
 
-    if tags:
-        print_sys("Extracting tags...")
-        tag_set = extract_tags_from_text(note_body, existing_tags=note.annotations.tags)
-        clear_previous_line()
-    else:
-        tag_set = None
-
-        # if entities:
-        #     entity_intelligence = extract_entities_from_text(note_body)
-        # else:
-        #     entity_intelligence = None
-
-        # if times:
-        #     time_intelligence = extract_time_intelligence_from_text(note_body)
-        # else:
-        #     time_intelligence = None
+    # Use AI to extract annotations
+    new_annotations = extract_annotations(
+        note_body,
+        extract_tags=tags,
+        extract_entitites=entities,
+        ignore_tags=note.annotations.tags,
+        ignore_entities={e for e in note.annotations.entities if e.type != EntityType.UNKNOWN}
+    )
         
     if interactive:
         prompt_session = PromptSession(history=InMemoryHistory())
 
         # Tags
-        if tag_set:
+        if new_annotations.tags:
             tags_interactive = prompt_session.prompt(
                     HTML(f"<ansicyan>Tags (edit):</ansicyan> "),
-                    default=tags2line(tag_set),
+                    default=tags2line(new_annotations.tags),
             )
-            tag_set = line2tags(tags_interactive)
+            new_annotations.tags = line2tags(tags_interactive)
 
         # Entities
-        # if entity_intelligence:
-        #     entities_interactive = prompt_session.prompt(
-        #             HTML(f"<ansicyan>Entities (edit):</ansicyan> "),
-        #             default=entities2line(entity_intelligence),
-        #     )
-        #     entity_intelligence = line2entities(entities_interactive)
-        #     print(entity_intelligence)
+        if new_annotations.entities:
+            entities_interactive = prompt_session.prompt(
+                    HTML(f"<ansicyan>Entities (edit):</ansicyan> "),
+                    default=new_annotations.entities_serialized,
+            )
+            entity_set = Annotations.entities_deserialize(entities_interactive)
+        
         # Time intelligence
         # TODO 
 
     else:
         # Tags
-        if tag_set:
-            print(fsys("Tags:"), ftag(tags2line(tag_set), decorator=""))
+        if new_annotations.tags:
+            print(fsys("Tags:"), ftag(tags2line(new_annotations.tags), decorator=""))
         # Entities
-        # if entity_intelligence:
-        #     print(fsys("Entities:"), ftag(entities2line(entity_intelligence), decorator=""))
+        if entity_set:
+            print(fsys("Entities:"), ftag(Annotations(entities=entity_set).entities_serialized, decorator=""))
         # Time intelligence
         # TODO 
 
+    # Create new snippet with the remaining annotations
+    ai_snippet_content = ""
     # Add the tags to the note, wherever they fit. 
     used_tags = set()
     if tags:
-        for tag in tag_set:
+        for tag in new_annotations.tags:
             for snippet in note.snippets:
                 if tag.content in snippet.content and not snippet.annotations.has_tag(tag):
                     snippet.add_tag(tag)
                     used_tags.add(tag)
                     break
-    remaining_tags = tag_set - used_tags
+        remaining_tags = new_annotations.tags - used_tags
+        if remaining_tags:
+            ai_snippet_content += tags2line(remaining_tags)
+            # TODO add entities and time intelligence to the snippet content
+    if entities:
+        pass
 
-    if remaining_tags:
-        # Create new snippet with the remaining annotations
-        ai_snippet_content = tags2line(remaining_tags)
-        # TODO add entities and time intelligence to the snippet content
-
+    if ai_snippet_content:
         # Add the remaining (or selected) annotations to the note
         note.add(content=ai_snippet_content)
 
     # Display the updated note to the user
     print(note.dumps())
 
-    # Inform about the changes
-    print_sys("New tags to add to existing snippet: "+tags2line(used_tags))
-    print_sys("New tags to add to new snippet: "+tags2line(remaining_tags))
+    if tags:
+        # Inform about the changes
+        print_sys("New tags to add to existing snippet: "+tags2line(used_tags))
+        print_sys("New tags to add to new snippet: "+tags2line(remaining_tags))
     
     # Save to disk
     confirm = input(fsys("Do you want to save the changes? (y/n) "))
