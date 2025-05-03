@@ -18,7 +18,6 @@ def display_snippet(ord: int, snippet: Snippet):
         snippet_content = snippet_content.replace(tag.dumps(prefix=True), ftag(tag.content))
 
     for entity in snippet.annotations.entities:
-        print("replacing",entity.dumps(prefix=True, content_only=True),"with",fentity(entity.dumps(prefix=False)), entity.content)
         snippet_content = snippet_content.replace(entity.dumps(prefix=True, content_only=True), fentity(entity.dumps(prefix=False)))
     
     # Highlight times # TODO !!!

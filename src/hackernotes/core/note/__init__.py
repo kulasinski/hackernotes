@@ -161,7 +161,15 @@ class Note(BaseModel):
             df = pd.read_csv(index_full_path, sep="\t")
             df.set_index("ID", inplace=True)
         except FileNotFoundError:
-            df = pd.DataFrame(columns=["ID", "Created At", "Updated At", "Title", "Tags", "Entities", "Times"])
+            df = pd.DataFrame(columns=[
+                "ID", 
+                "Created At", 
+                "Updated At", 
+                "Title", 
+                "Tags", 
+                "Entities", 
+                # "Times"
+            ])
             # make ID the index
             df.set_index("ID", inplace=True)
 
@@ -172,9 +180,9 @@ class Note(BaseModel):
             dt_dumps(note.meta.created_at),
             dt_dumps(note.meta.updated_at),
             note.meta.title,
-            note.annotations.tags_serialized,
-            note.annotations.entities_serialized,
-            "TODO", # note.annotations.times
+            note.annotations.tags_serialized or "--",
+            note.annotations.entities_serialized or "--",
+            # "TODO", # note.annotations.times
         ]
 
         # Save the index file

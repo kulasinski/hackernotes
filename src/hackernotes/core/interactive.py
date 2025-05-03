@@ -70,11 +70,12 @@ def interactive_create(note: Note):
         elif content.startswith("/edit") or content.startswith("/e"):
             # --- Edit snippet ---
             snippet_ord = int(content.split()[1])
-            if snippet_ord < 0 or snippet_ord > (len(self.snippets)-1):
+            if snippet_ord < 0 or snippet_ord > (note.snippets.length-1):
                 print_err(f"❌ Invalid snippet number: {snippet_ord}")
                 continue
+
             # Get the snippet to edit
-            snippet = self.snippets[snippet_ord]
+            snippet = note.snippets[snippet_ord]
 
             # Use prompt_toolkit to edit with the original content pre-filled
             new_content = prompt_session.prompt(
@@ -83,9 +84,8 @@ def interactive_create(note: Note):
             )
 
             # Update and overwrite
-            snippet = SnippetCRUD.update(session, snippet.id, content=new_content)
-            # Update the local snippet list
-            self.snippets[snippet_ord] = snippet
+            note.snippets.update(snippet_ord, new_content)
+
             marked_for_reinput = True
             break
 

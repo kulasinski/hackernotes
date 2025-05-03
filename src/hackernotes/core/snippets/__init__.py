@@ -84,6 +84,13 @@ class Snippets(BaseModel):
         snippet = Snippet(content=content, annotations=annotations)
         self[self.length] = snippet
         return snippet
+    
+    def update(self, ord: int, content: str) -> Snippet:
+        """Updates an existing snippet with new content"""
+        annotations = Annotations.extract(content)
+        snippet = Snippet(content=content, annotations=annotations)
+        self[ord] = snippet
+        return snippet
 
     def reindex(self):
         """Re-indexes the snippets."""
