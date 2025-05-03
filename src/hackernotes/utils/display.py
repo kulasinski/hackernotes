@@ -5,7 +5,7 @@ from hackernotes.core.note import Note
 from hackernotes.core.snippets import Snippets
 from hackernotes.core.snippets.snippet import Snippet
 from hackernotes.utils.datetime import dt_dumps
-from hackernotes.utils.term import fsys, ftag
+from hackernotes.utils.term import fentity, fsys, ftag
 
 
 def display_snippet(ord: int, snippet: Snippet):
@@ -15,9 +15,11 @@ def display_snippet(ord: int, snippet: Snippet):
 
     # Highlight tags and entities
     for tag in snippet.annotations.tags:
-        snippet_content = snippet_content.replace(tag.dumps(), ftag(tag.content))
-    # for entity in snippet.entities: TODO
-    #     snippet_content = snippet_content.replace(f"@{entity.name}", f"{Fore.MAGENTA}@{entity.name}{Style.RESET_ALL}")
+        snippet_content = snippet_content.replace(tag.dumps(prefix=True), ftag(tag.content))
+
+    for entity in snippet.annotations.entities:
+        print("replacing",entity.dumps(prefix=True, content_only=True),"with",fentity(entity.dumps(prefix=False)), entity.content)
+        snippet_content = snippet_content.replace(entity.dumps(prefix=True, content_only=True), fentity(entity.dumps(prefix=False)))
     
     # Highlight times # TODO !!!
 
@@ -51,9 +53,9 @@ def display_note(note: Note, width: int = 80, footer: bool = True):
     if footer:
         print("-" * width)
         if note.annotations.tags:
-            print(fsys("[TAGS] ")+', '.join([ftag(tag.content) for tag in note.annotations.tags]))
-        # if note.annotations.entities:
-        #     print(fsys("Entities: ")+', '.join([fentity(e) for e in self.entities]))
+            print(fsys("[TAGS] ")+ftag(note.annotations.tags_serialized))
+        if note.annotations.entities:
+            print(fsys("[ENTITIES] ")+fentity(note.annotations.entities_serialized))
         # if self.timesAll: # TODO 
         #     print(fsys("Times: ")+', '.join([f"{time.literal} ({time.scope})" for time in self.timesAll]))
         # if self.urls: # TODO ??

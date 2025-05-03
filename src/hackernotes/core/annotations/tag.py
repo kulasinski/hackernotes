@@ -1,7 +1,8 @@
 from typing import Set
 from .annotation import Annotation
 
-TAG_PATTERN: str = r"#([\w-]+|\"[^\"]+\")"
+# TAG_PATTERN: str = r"#([\w-]+|\"[^\"]+\")"
+TAG_PATTERN: str = r"(?<!\w)#\w+"
 
 class Tag(Annotation):
     """Tag annotation model."""
@@ -11,9 +12,9 @@ class Tag(Annotation):
     def __hash__(self):
         return self.content.__hash__()
 
-    def dumps(self) -> str:
+    def dumps(self, prefix: bool = True) -> str:
         """Serialize the tag to a string."""
-        return '#'+self.content.strip()
+        return ("#" if prefix else "")+self.content.strip()
     
     @classmethod
     def loads(cls, content: str) -> "Tag":
@@ -28,7 +29,7 @@ class Tag(Annotation):
         import re
         tags = set()
         for tag in re.findall(TAG_PATTERN, content):
-            tags.add(Tag(content=tag))
+            tags.add(Tag(content=tag[1:]))
         return tags
     
     def occurs(self, content: str) -> bool:

@@ -52,7 +52,7 @@ def run(note_id, interactive, tags, entities, times):
 
     if tags:
         print_sys("Extracting tags...")
-        tag_set = extract_tags_from_text(note_body)
+        tag_set = extract_tags_from_text(note_body, existing_tags=note.annotations.tags)
         clear_previous_line()
     else:
         tag_set = None
@@ -110,15 +110,20 @@ def run(note_id, interactive, tags, entities, times):
                     break
     remaining_tags = tag_set - used_tags
 
-    # Create new snippet with the remaining annotations
-    ai_snippet_content = tags2line(remaining_tags)
-    # TODO add entities and time intelligence to the snippet content
+    if remaining_tags:
+        # Create new snippet with the remaining annotations
+        ai_snippet_content = tags2line(remaining_tags)
+        # TODO add entities and time intelligence to the snippet content
 
-    # Add the remaining (or selected) annotations to the note
-    note.add(content=ai_snippet_content)
+        # Add the remaining (or selected) annotations to the note
+        note.add(content=ai_snippet_content)
 
     # Display the updated note to the user
     print(note.dumps())
+
+    # Inform about the changes
+    print_sys("New tags to add to existing snippet: "+tags2line(used_tags))
+    print_sys("New tags to add to new snippet: "+tags2line(remaining_tags))
     
     # Save to disk
     confirm = input(fsys("Do you want to save the changes? (y/n) "))

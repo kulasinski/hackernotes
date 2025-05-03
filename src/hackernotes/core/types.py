@@ -44,6 +44,7 @@ class TaskStatus(HackerEnum):
     FAILED = "FAILED"
 
 class EntityType(HackerEnum):
+    UNKNOWN = "UNKNOWN"
     PERSON = "PERSON"
     ORGANIZATION = "ORGANIZATION"
     LOCATION = "LOCATION"

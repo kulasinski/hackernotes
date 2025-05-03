@@ -2,6 +2,8 @@ from typing import Set
 from pydantic import BaseModel
 
 from hackernotes.core.annotations import Annotations
+from hackernotes.core.annotations.entity import Entity
+from hackernotes.core.annotations.tag import Tag
 
 from .snippet import Snippet
 
@@ -19,12 +21,20 @@ class Snippets(BaseModel):
         return len(self.__snippets__)
     
     @property
-    def tags(self) -> Set[str]:
+    def tags(self) -> Set[Tag]:
         """Returns the tags of the snippets."""
         tags = set()
         for snippet in self.__snippets__.values():
             tags.update(snippet.annotations.tags)
         return tags
+    
+    @property
+    def entities(self) -> Set[Entity]:
+        """Returns the tags of the snippets."""
+        entities = set()
+        for snippet in self.__snippets__.values():
+            entities.update(snippet.annotations.entities)
+        return entities
     
     @property
     def last_snippet(self) -> Snippet:

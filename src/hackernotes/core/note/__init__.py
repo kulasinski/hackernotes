@@ -41,6 +41,7 @@ class Note(BaseModel):
         """Updates the annotations of the note: collect all the snippets' annotations."""
         self.annotations = Annotations(
             tags=self.snippets.tags,
+            entities=self.snippets.entities,
             # TODO entities=self.snippets.entities, etc
         )
 
@@ -166,7 +167,7 @@ class Note(BaseModel):
             dt_dumps(note.meta.updated_at),
             note.meta.title,
             tags2line(note.annotations.tags),
-            "TODO", # note.annotations.entities,
+            note.annotations.entities,
             "TODO", # note.annotations.times
         ]
 

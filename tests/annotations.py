@@ -1,6 +1,8 @@
 
 from hackernotes.core.note import Note
 from hackernotes.core.note.meta import NoteMeta
+from hackernotes.core.annotations import Entity
+from hackernotes.core.types import EntityType
 
 
 def test_automatic_tag_parsing():
@@ -37,4 +39,17 @@ def test_automatic_tag_parsing():
     assert len(loaded_note.annotations.tags) == 3
 
     note.remove(confirm=False)
-    
+
+def test_entity_dump_load():
+    e = Entity(
+        content="Karol",
+        type=EntityType.PERSON
+    )
+
+    e_dumped = e.dumps()
+
+    assert e_dumped == "@Karol (PERSON)"
+
+    e2 = Entity.loads(e_dumped)
+
+    assert e == e2

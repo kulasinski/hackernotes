@@ -17,11 +17,11 @@ def ferror(content: str):
 
 def fentity(content: str):
     """ Format string for entity output. """
-    return f"{Fore.MAGENTA}@{content}{Style.RESET_ALL}"
+    return f"{Fore.MAGENTA}{content}{Style.RESET_ALL}"
 
-def ftag(content: str, decorator: str = "#"):
+def ftag(content: str):
     """ Format string for tag output. """
-    return f"{Fore.GREEN}{decorator}{content}{Style.RESET_ALL}"
+    return f"{Fore.GREEN}{content}{Style.RESET_ALL}"
 
 # def fstatus(status: str):
 #     if status == QueueStatus.PENDING:

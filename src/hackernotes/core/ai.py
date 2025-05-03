@@ -1,28 +1,37 @@
 from typing import List, Set
 
+from hackernotes.utils.parsers import tags2line
+
 from ..core.annotations.tag import Tag
 from ..utils.datetime import now
 from ..utils.llm import ollama_generate
 
 from ..core.types import EntityIntelligence, EntityType, ExtractedEntities, ExtractedTimeIntelligence, TimeIntelligence, TimeScope
 
-def extract_tags_from_text(text: str) -> Set[Tag]:
+def extract_tags_from_text(text: str, existing_tags: Set[Tag] = None) -> Set[Tag]:
     """Extracts tags from text."""
+
+    if existing_tags:
+        existing_tags_warning = "You must ignore the tags that are already in the text:\n"
+        existing_tags_warning += tags2line(existing_tags)
+    else:
+        existing_tags_warning = ""
     
     sys_prompt = """
     You will be given a piece of text that is a note written by the user.
     Your task is to figure out which tags might be a good fit for the note.
     Warning: if the note contains any word preceded by either '#', '@', or '^', you MUST ignore it.
+    {existing_tags_warning}
 
     Form your response as a JSON array of strings.
     For example, if the note contains the text "I love Python coding", your response should be:
-    {
+    {{
         "tags": ["Python", "coding", #programming"]
-    }
+    }}
 
     Note: if something already IS an entity (preceded by @) or a tag (preceded by #), DO NOT include it in the response.
     Note: persons, organizations, and locations are NOT tags but entities, do not include them in the response.
-    """
+    """.format(existing_tags_warning=existing_tags_warning)
 
     response = ollama_generate(
         sys_prompt=sys_prompt,
@@ -32,7 +41,7 @@ def extract_tags_from_text(text: str) -> Set[Tag]:
     resp_eval = eval(response)
 
     if isinstance(resp_eval, dict) and "tags" in resp_eval:
-        return set(Tag(content=tag) for tag in resp_eval["tags"])
+        return set(Tag(content=tag.replace("#","")) for tag in resp_eval["tags"])
     else:
         raise ValueError("Invalid response format from Ollama API: {}".format(response))
     
