@@ -19,6 +19,10 @@ class Entity(Annotation):
         for entity in re.findall(ENTITY_PATTERN, content):
             entities.add(Entity(content=entity[1:]))
         return entities
+    
+    def occurs(self, content: str) -> bool:
+        """Check if the entity occurs in the given content."""
+        return f"@{self.content}" in content
 
     # --- Serializaton Methods ---
     def __hash__(self):

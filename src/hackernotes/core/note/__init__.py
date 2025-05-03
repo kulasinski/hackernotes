@@ -148,7 +148,13 @@ class Note(BaseModel):
         index_full_path = os.path.join(ws.base_dir, index_fn)
 
         # Check if the note exists
-        note = Note.read(note_id)
+        try:
+            note = Note.read(note_id)
+            if not note:
+                raise ValueError("Null note...")
+        except Exception as e:
+            print_warn(f"Cannot index note with ID {note_id}... ({e})")
+            return 
 
         # Open or create the index file
         try:
@@ -159,15 +165,15 @@ class Note(BaseModel):
             # make ID the index
             df.set_index("ID", inplace=True)
 
-        print(df)
+        # print(df)
 
         # Create or update the note entry
         df.loc[note.meta.id] = [
             dt_dumps(note.meta.created_at),
             dt_dumps(note.meta.updated_at),
             note.meta.title,
-            tags2line(note.annotations.tags),
-            note.annotations.entities,
+            note.annotations.tags_serialized,
+            note.annotations.entities_serialized,
             "TODO", # note.annotations.times
         ]
 

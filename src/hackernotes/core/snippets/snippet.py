@@ -36,5 +36,6 @@ class Snippet(BaseModel):
         if ext_annotations:
             # Filter the annotations to only include those that are in the snippet
             annotations.tags = {tag for tag in ext_annotations.tags if tag.occurs(content)}
+            annotations.entities = {entity for entity in ext_annotations.entities if entity.occurs(content)}
             # TODO etc.
         return Snippet(content=content.strip(), annotations=annotations)

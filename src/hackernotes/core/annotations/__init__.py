@@ -67,6 +67,8 @@ class Annotations(BaseModel):
     
     @property
     def tags_serialized(self) -> str:
+        if not self.tags:
+            return ""
         return ' '.join([tag.dumps() for tag in self.tags]).strip()
     
     # --- Entities Methods ---
@@ -88,6 +90,8 @@ class Annotations(BaseModel):
     
     @property
     def entities_serialized(self) -> str:
+        if not self.entities:
+            return ""
         return ' '.join([entity.dumps() for entity in self.entities]).strip()
     
     # --- Serialization Methods ---
