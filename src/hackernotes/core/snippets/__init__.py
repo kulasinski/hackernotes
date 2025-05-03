@@ -91,10 +91,15 @@ class Snippets(BaseModel):
         snippet = Snippet(content=content, annotations=annotations)
         self[ord] = snippet
         return snippet
+    
+    def remove(self, ord: int) -> None:
+        del self[ord]
+        self.reindex()
 
     def reindex(self):
         """Re-indexes the snippets."""
-        self.__snippets__ = {i: self.__snippets__[i] for i in range(len(self.__snippets__))}
+        snippets = {i: snippet for i, snippet in enumerate(self)}
+        self.__snippets__ = snippets
 
     # --- Serialization Methods ---
 

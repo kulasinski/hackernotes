@@ -51,15 +51,12 @@ def interactive_create(note: Note):
             except (ValueError, IndexError):
                 print_err(f"❌ Invalid snippet number: {content.split()[1]}")
                 continue
-            # Try to delete the snippet
-            is_deleted = self.snippet_delete(session, snippet_ord)
-            if is_deleted:
-                # Reinput the current snippet and exit the current loop
-                marked_for_reinput = True
-                break
-            else:
-                # If deletion failed, continue the loop
-                continue
+
+            note.snippets.remove(snippet_ord)
+
+            # Reinput the current snippet and exit the current loop
+            marked_for_reinput = True
+            break
 
         # --- Archive note ---
         elif content.startswith("/archive"):
