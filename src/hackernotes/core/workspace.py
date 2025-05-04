@@ -211,5 +211,34 @@ class Workspace(BaseModel):
         """
         Returns the content of the index file.
         """
+        from ..utils.datetime import dateFormat
         df = pd.read_csv(os.path.join(self.base_dir, index_fn), sep="\t")
+        df.set_index("ID", inplace=True)
+        # cast created_at and updated_at to datetime
+        df["Created At"] = pd.to_datetime(df["Created At"], format=dateFormat)
+        df["Updated At"] = pd.to_datetime(df["Updated At"], format=dateFormat)
         return df
+    
+    def list_notes(self,
+            created_after: datetime = None,
+            created_before: datetime = None,
+            updated_after: datetime = None,
+            updated_before: datetime = None,
+        ) -> pd.DataFrame:
+        """
+        Lists all notes in the workspace.
+        """
+        # Get index
+        index_df = self.get_index()
+
+        # Filter by dates
+        if created_after:
+            index_df = index_df[index_df["Created At"] > created_after]
+        if created_before:
+            index_df = index_df[index_df["Created At"] < created_before]
+        if updated_after:
+            index_df = index_df[index_df["Updated At"] > updated_after]
+        if updated_before:
+            index_df = index_df[index_df["Updated At"] < updated_before]
+
+        return index_df

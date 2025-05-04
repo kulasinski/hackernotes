@@ -3,13 +3,13 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.formatted_text import HTML
 
-from hackernotes.core.ai import extract_annotations
+from ..core.ai import extract_annotations
+from ..core.ai import generate as ai_generate
 from hackernotes.core.annotations import Annotations
-from hackernotes.core.annotations.entity import Entity
 from hackernotes.core.note import Note
 from hackernotes.core.types import EntityType
 from hackernotes.db import SessionLocal
-# from hackernotes.db.query import NoteCRUD
+from hackernotes.utils.datetime import INPUT_DATE_FORMATS
 from hackernotes.utils.parsers import line2tags, tags2line
 from hackernotes.utils.term import fsys, ftag, print_sys, print_warn
 
@@ -135,15 +135,28 @@ def run(note_id, interactive, tags, entities, times):
     return
 
 @ai.command()
-@click.argument('type')
-def prompt(type):
-    pass
+@click.argument('prompt_val')
+# @click.argument('note_id')
+def prompt(prompt_val):
+    """Query the LLM with a given prompt on a list of notes"""
+    raise NotImplementedError("Prompting is not implemented yet.")
 
 @ai.command()
 def chat():
-    pass
+    raise NotImplementedError("Chat is not implemented yet.")
 
 @ai.command()
-@click.argument('note_id')
-def generate(note_id):
-    pass
+@click.argument('prompt_name')
+@click.option('--created_after', '-ca', type=click.DateTime(formats=INPUT_DATE_FORMATS), help="Filter notes created after this date.")
+def generate(prompt_name, created_after):
+    """Generate some text on a list of notes using predefined prompt."""
+
+    notes_text = Note.concat_notes(
+        created_after=created_after,
+    )
+
+    # print(notes_text)
+
+    output = ai_generate(prompt_name, notes_text)
+
+    print_sys(output)

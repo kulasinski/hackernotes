@@ -2,6 +2,12 @@ from datetime import datetime
 
 dateFormat = "%Y-%m-%d %H:%M:%S"
 
+INPUT_DATE_FORMATS = [
+    dateFormat,
+    "%Y-%m-%d",
+    "%d.%m.%Y",
+]
+
 def now(descriptive: bool = False) -> str:
     """Returns the current date and time in the format YYYY-MM-DD HH:MM:SS."""
     if descriptive:

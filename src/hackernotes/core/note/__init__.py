@@ -1,3 +1,4 @@
+from datetime import datetime
 import pandas as pd
 from pydantic import BaseModel
 import os
@@ -226,3 +227,25 @@ class Note(BaseModel):
             os.remove(index_full_path)
         for note_id in note_ids:
             cls.index(note_id)
+
+    @classmethod
+    def concat_notes(cls, **kwargs) -> str:
+        """
+        Concatenates all notes in the workspace into a single string.
+        """
+
+        # Get ids from index
+        ws = Workspace.get()
+        index_df = ws.list_notes(**kwargs)
+        note_ids = index_df.index.tolist()
+
+        # Concatenate notes
+        output = ""
+        for note_id in note_ids:
+            note = Note.read(note_id)
+            if note:
+                output += note.snippets.dumps() + "\n\n"
+            else:
+                print_warn(f"Note '{note_id}' not found.")
+
+        return output

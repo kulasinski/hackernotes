@@ -3,6 +3,7 @@ from tabulate import tabulate
 
 from hackernotes.core.note import Note
 from hackernotes.core.workspace import Workspace
+from hackernotes.utils import wrap
 from hackernotes.utils.display import display_note
 
 from . import hn
@@ -10,7 +11,7 @@ from ..core.interactive import handle_create_note, handle_edit_note
 # from ..core.note import NoteService
 from ..db import SessionLocal
 from ..utils.datetime import now
-from ..utils.term import clear_terminal, print_warn
+from ..utils.term import clear_terminal, fentity, fsys, ftag, print_warn
 
 # === Note Commands ===
 @hn.group()
@@ -81,24 +82,21 @@ def export(note_id):
     print(Note.read(note_id).dumps())
 
 @note.command()
-@click.option('--tag', '-t', multiple=True, help="Filter by tags")
-@click.option('--entity', '-e', multiple=True, help="Filter by entities")
-@click.option('--content', '-c', multiple=True, help="Filter by content")
-@click.option('--limit', type=int, default=10, help="Limit the number of notes displayed.")
-@click.option('--all', is_flag=True, help="List all notes including archived.")
-@click.option('--archived', is_flag=True, help="List archived notes.")
-def list(*args, **kwargs):
+# @click.option('--tag', '-t', multiple=True, help="Filter by tags")
+# @click.option('--entity', '-e', multiple=True, help="Filter by entities")
+# @click.option('--content', '-c', multiple=True, help="Filter by content")
+@click.option('--limit', '-l', type=int, default=5, help="Limit the number of notes displayed.")
+@click.option('--order_by', '-o', type=click.Choice(['created_at', 'updated_at', 'title'], 
+    case_sensitive=False), default='created_at', help="Order by created or updated date, or title.")
+@click.option('--direction', '-d', type=click.Choice(['asc', 'desc'], 
+    case_sensitive=False), default='desc', help="Sort direction (ascending or descending).")
+# @click.option('--all', is_flag=True, help="List all notes including archived.")
+# @click.option('--archived', is_flag=True, help="List archived notes.")
+def list(limit, order_by, direction):
     """Lists notes based on provided filters (tags, entities, or content)."""
 
     # Get the current workspace
     ws = Workspace.get()
-
-    # Read note files # TODO return more than just names...
-    # notes = ws.list_notes()
-
-    # if not notes:
-    #     print_warn("No notes found.")
-    #     return
     
     try:
         index_df = ws.get_index()
@@ -106,33 +104,45 @@ def list(*args, **kwargs):
         print_warn("Index file not found.")
         return
     
-    print(tabulate(index_df, headers='keys', tablefmt='psql'))
+    # Apply limit
+    if limit:
+        index_df = index_df.head(limit)
+    # Apply ordering
+    if order_by == 'created_at':
+        index_df = index_df.sort_values(by='Created At', ascending=(direction == 'asc'))
+    elif order_by == 'updated_at':
+        index_df = index_df.sort_values(by='Updated At', ascending=(direction == 'asc'))
+    elif order_by == 'title':
+        index_df = index_df.sort_values(by='Title', ascending=(direction == 'asc'))
     
-    # headers = [fsys("ID"), fsys("Title"), fsys("Snippets"), fsys("Created At"), fsys("Tags"), fsys("Entities"), fsys("Times")]
-    # table = [
-    #     [
-    #         fsys(note), # ID... TODO
-    #         "", #note.title,
-    #         "", #note.size,
-    #         "", #note.getCreatedAt(),
-    #         "", #", ".join([ftag(tag) for tag in note.tags]),
-    #         "", #", ".join([fentity(entity) for entity in note.entities]),
-    #         "", # ", ".join([f"{t.literal}" for t in note.timesAll])
-    #     ]
-    #     for note in notes
-    # ]
-    # table = [
-    #     [
-    #         fsys(note_id),
-    #         note["Title"],
-    #         note["Snippets"],
-    #         note["Created At"],
-    #         ", ".join([ftag(tag) for tag in note["Tags"]]),
-    #         ", ".join([fentity(entity) for entity in note["Entities"]]),
-    #         ", ".join([f"{t.literal}" for t in note["Times"]])
-    #     ]
-    #     for note_id, note in index_df.iterrows()
-    # ]
+    headers = [fsys("ID"), 
+        fsys("Title"), 
+        fsys("Created At"), 
+        fsys("Updated At"), 
+        # fsys("Size"), 
+        fsys("Tags"), 
+        fsys("Entities"), 
+        # fsys("Times")
+    ]
 
+    table = [
+        [
+            fsys(note_id),
+            note["Title"],
+            # note["Snippets"],
+            note["Created At"],
+            note["Updated At"],
+            ftag(note["Tags"]),
+            fentity(note["Entities"]),
+        ]
+        for note_id, note in index_df.iterrows()
+    ]
 
-    # click.echo(tabulate(table, headers=headers, tablefmt="simple_outline"))
+    click.echo(
+        tabulate(
+            table, 
+            headers=headers, 
+            tablefmt="grid", 
+            maxcolwidths=20
+        )
+    )

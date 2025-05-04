@@ -1,3 +1,4 @@
+import sys
 from typing import List, Set
 
 from pydantic import BaseModel
@@ -5,7 +6,7 @@ from pydantic import BaseModel
 from hackernotes.core.annotations import Annotations
 from hackernotes.core.annotations.entity import Entity
 from hackernotes.utils.parsers import tags2line
-from hackernotes.utils.term import clear_previous_line, print_sys
+from hackernotes.utils.term import clear_previous_line, print_err, print_sys
 
 from ..core.annotations.tag import Tag
 from ..utils.datetime import now
@@ -165,3 +166,33 @@ def extract_annotations(text: str,
     #     time_intelligence = None
 
     return new_annotations
+
+# ---
+
+PREDEFINED_PROMPTS = {
+    "REWRITE": """
+    You will be given a piece of text that is a note or notes written by the user.
+    Your task is to rewrite the note in a more concise and clear way.
+    Use the same language as the original note.
+    Make it sound natural overall, as one monolith text.
+    """,
+}
+
+def generate(prompt_name: str, text: str) -> str:
+    """Generates some output based on the text from note(s) using LLM."""
+
+    sys_prompt = PREDEFINED_PROMPTS.get(prompt_name.upper(), "")
+    if not sys_prompt:
+        print_err(f"❌ Invalid prompt name: {prompt_name}")
+        sys.exit(1)
+
+    print_sys(f"Generating {prompt_name.upper()}...")
+
+    response = ollama_generate(
+        sys_prompt=sys_prompt,
+        user_prompt=text,
+    )
+
+    clear_previous_line()
+
+    return response
