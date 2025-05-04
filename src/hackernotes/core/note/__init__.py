@@ -45,7 +45,7 @@ class Note(BaseModel):
             # TODO entities=self.snippets.entities, etc
         )
 
-    def remove(self, confirm: bool = True):
+    def remove(self, confirm: bool = True, from_index: bool = True):
         """Removes the note from the workspace."""
         if confirm:
             # Ask for confirmation
@@ -60,6 +60,9 @@ class Note(BaseModel):
             print_err(f"Note with id {self.meta.id} not found in the current workspace.")
             return
         print_warn(f"Note {self.meta.id} removed.")
+        
+        if from_index:
+            self.remove_from_index(self.meta.id)
 
     # --- Serialization Methods ---
 
@@ -137,6 +140,24 @@ class Note(BaseModel):
         return cls.loads(content)
     
     # --- Indexing Methods ---
+
+    @classmethod
+    def remove_from_index(cls, note_id: str, index_fn: str = "__index__.tsv", ws: Workspace = None):
+        """
+        Remove note from the index
+        """
+        if not ws:
+            ws = Workspace.get()
+        index_full_path = os.path.join(ws.base_dir, index_fn)
+                
+        df = pd.read_csv(index_full_path, sep="\t")
+        df.set_index("ID", inplace=True)
+        # delete the note from the index
+        df.drop(note_id, inplace=True)
+
+        # Save the index file
+        df.to_csv(index_full_path, sep="\t", index=True)
+        print_sys(f"[+] Removed note '{note_id}' from index in workspace '{ws.name}'")
 
     @classmethod
     def index(cls, note_id: str, index_fn: str = "__index__.tsv", ws: Workspace = None):

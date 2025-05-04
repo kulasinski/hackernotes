@@ -178,7 +178,6 @@ def handle_edit_note(session, note_id: str, width: int = 50):
     # Get note from database
     note = Note.read(note_id)
     if not note:
-        print_warn(f"Note with ID {note_id} not found.")
         return
     
     # clear_terminal()
